@@ -30,8 +30,8 @@ INSTALL:
 import pandas as pd
 import json
 from pathlib import Path
-from DNA.config.institution_mapping import get_institution
-from DNA.config.keyword_merge import KEYWORD_MERGE
+from config.institution_mapping import get_institution
+from config.keyword_merge import KEYWORD_MERGE
 
 OUTDIR = Path("output")
 
