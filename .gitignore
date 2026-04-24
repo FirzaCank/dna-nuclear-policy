@@ -1,0 +1,29 @@
+# ── Generated output files (do not commit) ───────────────────────────────────
+output/
+*.csv
+*.html
+!docs/index.html
+*.jsonl
+*.png
+*.jpg
+*.jpeg
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+
+# ── Python virtual environment ────────────────────────────────────────────────
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+log/
+*.log
+
+# ── Input data (may contain sensitive source data) ───────────────────────────
+input/
