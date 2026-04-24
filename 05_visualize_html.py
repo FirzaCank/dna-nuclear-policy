@@ -83,15 +83,11 @@ def build_edges_net(edges_raw):
     ei = ef.groupby(["institution", "target", "position"])["weight"].sum().reset_index()
     return ei.loc[ei.groupby(["institution", "target"])["weight"].idxmax()].reset_index(drop=True)
 
-# Graph 1: keyword (detail)
-edges_ak_renamed = edges_ak.rename(columns={"keyword": "target"})
-edges_net_kw = build_edges_net(edges_ak_renamed)
-
-# Graph 2: variable (compact)
+# Graph 1: variable (compact) — keyword graph disabled
 edges_net_var = build_edges_net(edges_av)
 
 print(f"[INPUT] {len(nodes_actors)} aktor total → {len(nodes_actors_filtered)} aktor (≥{MIN_STATEMENTS} statements)")
-print(f"        → {len(inst_stats)} institusi | keyword graph: {len(edges_net_kw)} edges {edges_net_kw['target'].nunique()} nodes | variable graph: {len(edges_net_var)} edges {edges_net_var['target'].nunique()} nodes")
+print(f"        → {len(inst_stats)} institusi | variable graph: {len(edges_net_var)} edges {edges_net_var['target'].nunique()} nodes")
 
 # ── 1. Pyvis Networks (Graph 1: Keyword detail, Graph 2: Variable compact) ───
 FREEZE_JS = """
@@ -189,20 +185,13 @@ def build_pyvis_html(edges_net, concept_color, out_path):
 
 try:
     import base64
-    html_kw  = build_pyvis_html(edges_net_kw,  "#ffb74d", OUTDIR / "network_dna.html")
     html_var = build_pyvis_html(edges_net_var, "#ce93d8", OUTDIR / "network_dna_var.html")
-    b64_kw  = base64.b64encode(html_kw.encode("utf-8")).decode("ascii")
     b64_var = base64.b64encode(html_var.encode("utf-8")).decode("ascii")
     network_section = f'''
-<div style="margin-bottom:12px;margin-top:24px">
-  <button onclick="document.getElementById('graph-kw').style.display='block';document.getElementById('graph-var').style.display='none';this.classList.add('active-tab');document.getElementById('btn-var').classList.remove('active-tab')" id="btn-kw" class="graph-tab active-tab">Detail: Aktor → Keyword</button>
-  <button onclick="document.getElementById('graph-var').style.display='block';document.getElementById('graph-kw').style.display='none';this.classList.add('active-tab');document.getElementById('btn-kw').classList.remove('active-tab')" id="btn-var" class="graph-tab">Compact: Aktor → 7 Variabel</button>
-</div>
-<div id="graph-kw" style="display:block"><iframe src="data:text/html;base64,{b64_kw}" width="100%" height="1100px" style="border:none;display:block;"></iframe></div>
-<div id="graph-var" style="display:none"><iframe src="data:text/html;base64,{b64_var}" width="100%" height="1100px" style="border:none;display:block;"></iframe></div>
+<div id="graph-var" style="display:block"><iframe src="data:text/html;base64,{b64_var}" width="100%" height="1100px" style="border:none;display:block;"></iframe></div>
 '''
-    network_head = "<style>.graph-tab{padding:8px 20px;border:none;border-radius:6px;background:#2a2a4a;color:#aaa;cursor:pointer;font-size:0.9rem;margin-right:8px}.graph-tab.active-tab{background:#ffb74d;color:#000;font-weight:bold}</style>"
-    print("  [OK] 2 network graphs dibuat → network_dna.html, network_dna_var.html")
+    network_head = ""
+    print("  [OK] Network graph (compact) dibuat → network_dna_var.html")
 except ImportError:
     print("  [SKIP] pyvis tidak terinstall — jalankan: pip install pyvis")
     network_section = "<p style='color:#aaa'>Install pyvis untuk network graph: <code>pip install pyvis</code></p>"
@@ -389,8 +378,7 @@ html = f"""<!DOCTYPE html>
       <div class="legend-item"><div class="legend-dot" style="background:#66bb6a"></div>Institusi PRO</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ef5350"></div>Institusi KONTRA</div>
       <div class="legend-item"><div class="legend-dot" style="background:#bdbdbd"></div>Institusi NETRAL</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ffb74d"></div>Keyword (detail)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ce93d8"></div>Variabel (compact)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ce93d8"></div>Aktor → 7 Variabel Kebijakan</div>
       <div class="legend-item"><span style="color:#aaa;font-size:0.75rem">— EDGE HIJAU: PRO,   MERAH: KONTRA,   ABU: NETRAL</span></div>
     </div>
     <div style="width:100%;overflow:hidden;">{network_section}</div>
