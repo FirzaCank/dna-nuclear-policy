@@ -44,6 +44,7 @@ edges_ak       = pd.read_csv(OUTDIR / "05c_edges_actor_keyword.csv")   # actor�
 summary_var    = pd.read_csv(OUTDIR / "06a_summary_by_variable.csv")
 sentiment_df   = pd.read_csv(OUTDIR / "07_sentiment_scored.csv")
 flat_df        = pd.read_csv(OUTDIR / "01_flat_statements.csv")
+flat_df_all    = flat_df.copy()  # unfiltered — untuk trend artikel
 
 MIN_STATEMENTS = 3   # filter actors: show only those with ≥ N statements
 
@@ -58,6 +59,10 @@ nodes_actors_filtered = nodes_actors_filtered[nodes_actors_filtered["institution
 active_actors = set(nodes_actors_filtered["actor"])
 actor_to_inst = dict(zip(nodes_actors_filtered["actor"], nodes_actors_filtered["institution"]))
 
+# ── Apply MIN_STATEMENTS filter to all downstream data ────────────────────────
+flat_df      = flat_df[flat_df["actor"].isin(active_actors)].copy()
+sentiment_df = sentiment_df[sentiment_df["actor"].isin(active_actors)].copy()
+
 # Stats per institution (shared)
 inst_stats = (
     nodes_actors_filtered.groupby("institution")
@@ -68,10 +73,27 @@ inst_stats = (
         netral_count=("netral_count", "sum"),
     ).reset_index()
 )
-inst_stats["dominant_pos"] = inst_stats.apply(
-    lambda r: "PRO" if r["pro_count"] >= r["kontra_count"] and r["pro_count"] >= r["netral_count"]
-              else ("KONTRA" if r["kontra_count"] >= r["netral_count"] else "NETRAL"), axis=1
+
+# Hitung ambigu_count dari flat_df (sebelum difilter posisi)
+_ambigu = (
+    flat_df[flat_df["position"] == "AMBIGU"]
+    .assign(institution=lambda d: d["actor"].map(actor_to_inst))
+    .groupby("institution")
+    .size().reset_index(name="ambigu_count")
 )
+inst_stats = inst_stats.merge(_ambigu, on="institution", how="left")
+inst_stats["ambigu_count"] = inst_stats["ambigu_count"].fillna(0).astype(int)
+def _dominant_pos(r):
+    p, k, n = r["pro_count"], r["kontra_count"], r["netral_count"]
+    if p == k and p > 0:          # exact tie PRO vs KONTRA → NETRAL (berimbang)
+        return "NETRAL"
+    if p >= k and p >= n:
+        return "PRO"
+    if k >= p and k >= n:
+        return "KONTRA"
+    return "NETRAL"
+
+inst_stats["dominant_pos"] = inst_stats.apply(_dominant_pos, axis=1)
 inst_stats["members"] = inst_stats["institution"].map(
     nodes_actors_filtered.groupby("institution")["actor"].apply(lambda x: ", ".join(sorted(set(x))))
 )
@@ -107,6 +129,7 @@ document.addEventListener("DOMContentLoaded", function() {
     var proNodes    = allNodes.filter(function(n) { return n.group === "inst_pro"; });
     var kontraNodes = allNodes.filter(function(n) { return n.group === "inst_kontra"; });
     var netralNodes = allNodes.filter(function(n) { return n.group === "inst_netral"; });
+    var ambiguNodes = allNodes.filter(function(n) { return n.group === "inst_ambigu"; });
     function spreadSide(arr, xBase) {
       var sp = 180, startY = -((arr.length - 1) / 2) * sp;
       return arr.map(function(n, i) {
@@ -114,7 +137,8 @@ document.addEventListener("DOMContentLoaded", function() {
       });
     }
     nodes.update([].concat(spreadSide(proNodes, -900)).concat(spreadSide(kontraNodes, 900))
-      .concat(spreadSide(netralNodes, (Math.random() > 0.5 ? -900 : 900))));
+      .concat(spreadSide(netralNodes, (Math.random() > 0.5 ? -900 : 900)))
+      .concat(spreadSide(ambiguNodes, (Math.random() > 0.5 ? -1200 : 1200))));
   }
   function freezeNetwork() {
     if (_frozen) return; _frozen = true;
@@ -147,6 +171,13 @@ def build_pyvis_html(edges_net, concept_color, out_path):
         },
         "edges": {"smooth": {"type": "curvedCW", "roundness": 0.15}},
         "interaction": {"hover": True, "dragNodes": True},
+        "groups": {
+            "inst_pro":    {"color": {"background": "#66bb6a", "border": "#66bb6a"}},
+            "inst_kontra": {"color": {"background": "#ef5350", "border": "#ef5350"}},
+            "inst_netral": {"color": {"background": "#bdbdbd", "border": "#bdbdbd"}},
+            "inst_ambigu": {"color": {"background": "#ffd54f", "border": "#ffd54f"}},
+            "concept":     {"color": {"background": "#ce93d8", "border": "#ce93d8"}},
+        },
     }))
     COLOR_POS = {"PRO": "#66bb6a", "KONTRA": "#ef5350", "NETRAL": "#bdbdbd", "AMBIGU": "#ffd54f"}
     keyword_degree = edges_net.groupby("target")["institution"].nunique()
@@ -159,17 +190,19 @@ def build_pyvis_html(edges_net, concept_color, out_path):
                     font={"color": "#000000", "size": 18, "face": "arial", "bold": True, "strokeWidth": 0})
     active_institutions = set(edges_net["institution"])
     for _, row in inst_stats[inst_stats["institution"].isin(active_institutions)].iterrows():
-        color = COLOR_POS.get(str(row.get("dominant_pos", "NETRAL")), "#bdbdbd")
+        dom_pos = str(row.get("dominant_pos", "NETRAL")).strip().upper()
+        color = {"PRO": "#66bb6a", "KONTRA": "#ef5350", "NETRAL": "#bdbdbd", "AMBIGU": "#ffd54f"}.get(dom_pos, "#bdbdbd")
         title = (f"{row['institution']}\nTotal pernyataan: {row.get('n_statements',0)}\n"
-                f"Posisi dominan: {row.get('dominant_pos','')}\n"
-                f"PRO: {row.get('pro_count',0)} | KONTRA: {row.get('kontra_count',0)}\n"
+                f"Posisi dominan: {dom_pos}\n"
+                f"PRO: {row.get('pro_count',0)} | KONTRA: {row.get('kontra_count',0)} | NETRAL: {row.get('netral_count',0)} | AMBIGU: {row.get('ambigu_count',0)}\n"
                 f"Anggota: {row.get('members','')}")
-        dom_pos = str(row.get("dominant_pos", "NETRAL")).upper()
-        group_name = {"PRO": "inst_pro", "KONTRA": "inst_kontra"}.get(dom_pos, "inst_netral")
+        group_name = {"PRO": "inst_pro", "KONTRA": "inst_kontra", "AMBIGU": "inst_ambigu"}.get(dom_pos, "inst_netral")
         size = max(14, min(50, int(row.get("n_statements", 1)) * 2))
-        net.add_node(f"A::{row['institution']}", label=row["institution"], color=color,
-                    shape="dot", size=size, title=title, group=group_name,
-                    font={"color": "#ffffff", "size": 16, "strokeWidth": 2, "strokeColor": "#000000"})
+        node_color = {"background": color, "border": color, "highlight": {"background": color, "border": color}}
+        net.add_node(f"A::{row['institution']}", label=row["institution"], color=node_color,
+                    shape="dot", size=size, title=title,
+                    font={"color": "#ffffff", "size": 16, "strokeWidth": 2, "strokeColor": "#000000"},
+                    group=group_name)
     for _, row in edges_net.iterrows():
         color = COLOR_POS.get(str(row.get("position", "NETRAL")), "#bdbdbd")
         net.add_edge(f"A::{row['institution']}", f"V::{row['target']}",
@@ -200,18 +233,22 @@ except ImportError:
 
 # ── 2. Chart data (JSON untuk Chart.js — no matplotlib dependency) ────────────
 
-# Bar: posisi per variabel
+# Bar: posisi per variabel — gunakan flat_df yang sudah difilter (≥MIN_STATEMENTS)
 pos_cols = [c for c in summary_var.columns if c in ("PRO", "KONTRA", "NETRAL")]
-variables = summary_var["variable"].unique().tolist()
+_summary_var_filtered = flat_df.pivot_table(
+    index=["actor", "variable"], columns="position", values="source_id",
+    aggfunc="count", fill_value=0
+).reset_index()
+variables = sorted(flat_df["variable"].unique().tolist())
 chart_pos_data = {
     "labels": variables,
-    "pro":    [int(summary_var[summary_var["variable"]==v]["PRO"].sum())    if "PRO"    in summary_var.columns else 0 for v in variables],
-    "kontra": [int(summary_var[summary_var["variable"]==v]["KONTRA"].sum()) if "KONTRA" in summary_var.columns else 0 for v in variables],
-    "netral": [int(summary_var[summary_var["variable"]==v]["NETRAL"].sum()) if "NETRAL" in summary_var.columns else 0 for v in variables],
+    "pro":    [int(_summary_var_filtered[_summary_var_filtered["variable"]==v]["PRO"].sum())    if "PRO"    in _summary_var_filtered.columns else 0 for v in variables],
+    "kontra": [int(_summary_var_filtered[_summary_var_filtered["variable"]==v]["KONTRA"].sum()) if "KONTRA" in _summary_var_filtered.columns else 0 for v in variables],
+    "netral": [int(_summary_var_filtered[_summary_var_filtered["variable"]==v]["NETRAL"].sum()) if "NETRAL" in _summary_var_filtered.columns else 0 for v in variables],
 }
 
-# Bar: top 15 aktor
-top_actors = nodes_actors.nlargest(15, "n_statements").copy()
+# Bar: top 15 aktor — hanya aktor ≥ MIN_STATEMENTS
+top_actors = nodes_actors_filtered.nlargest(15, "n_statements").copy()
 
 def actor_label(row):
     org = get_institution(row["actor"], row.get("actor_type",""), row.get("actor_role",""))
@@ -243,11 +280,11 @@ chart_cross_data = {
     "datasets": [{"label": sl, "data": cross[sl].tolist() if sl in cross.columns else []} for sl in sent_labels],
 }
 
-# Trend: artikel per bulan (count unique source_url per month)
-flat_df["date_parsed"] = pd.to_datetime(flat_df["date"], errors="coerce")
-flat_df["year_month"] = flat_df["date_parsed"].dt.to_period("M").astype(str)
+# Trend: artikel per bulan — pakai semua data (unfiltered) agar periode awal tidak hilang
+flat_df_all["date_parsed"] = pd.to_datetime(flat_df_all["date"], errors="coerce")
+flat_df_all["year_month"]  = flat_df_all["date_parsed"].dt.to_period("M").astype(str)
 trend = (
-    flat_df.groupby(["year_month", "position"])["source_url"]
+    flat_df_all.groupby(["year_month", "position"])["source_url"]
     .nunique().reset_index(name="n_articles")
 )
 trend_months = sorted(trend["year_month"].dropna().unique().tolist())
@@ -268,8 +305,8 @@ chart_actor_type_data = {
     "values": actor_type_counts.values.tolist(),
 }
 
-# Top 10 KONTRA aktor — label dengan institusi dalam kurung
-top_kontra = nodes_actors[nodes_actors["kontra_count"] > 0].nlargest(10, "kontra_count").copy()
+# Top 10 KONTRA aktor — hanya aktor ≥ MIN_STATEMENTS
+top_kontra = nodes_actors_filtered[nodes_actors_filtered["kontra_count"] > 0].nlargest(10, "kontra_count").copy()
 
 def short_role(actor, actor_type, actor_role):
     """Ambil nama institusi singkat untuk label kurung."""
@@ -302,11 +339,11 @@ chart_var_data = {
     "values": var_counts.values.tolist(),
 }
 
-# Stats summary
-total_stmt = len(sentiment_df)
-total_actors = nodes_actors["actor"].nunique()
+# Stats summary — semua dari data yang sudah difilter ≥ MIN_STATEMENTS
+total_stmt    = len(sentiment_df)
+total_actors  = len(nodes_actors_filtered["actor"].unique())
 total_concepts = nodes_concepts["concept"].nunique()
-total_news = flat_df["source_url"].nunique()
+total_news    = flat_df["source_url"].nunique()
 if "position" in sentiment_df.columns:
     _pos_counts = sentiment_df["position"].value_counts()
     _total      = len(sentiment_df)
@@ -366,8 +403,8 @@ html = f"""<!DOCTYPE html>
     <div class="stat-card"><div class="number">{total_concepts}</div><div class="label">Konsep/Wacana</div></div>
     <div class="stat-card"><div class="number" style="color:#66bb6a">{pro_pct}%</div><div class="label">Pernyataan PRO</div></div>
     <div class="stat-card"><div class="number" style="color:#ef5350">{kontra_pct}%</div><div class="label">Pernyataan KONTRA</div></div>
-    <div class="stat-card"><div class="number" style="color:#bdbdbd">{netral_pct}%</div><div class="label">Pernyataan NETRAL</div></div>
-    <div class="stat-card"><div class="number" style="color:#ffa726">{ambigu_pct}%</div><div class="label">Pernyataan AMBIGU</div></div>
+    <div class="stat-card"><div class="number" style="color:#bdbdbd">{netral_pct}%</div><div class="label">Pernyataan NETRAL (Berimbang)</div></div>
+    <div class="stat-card"><div class="number" style="color:#ffa726">{ambigu_pct}%</div><div class="label">Pernyataan AMBIGU (Dua Sisi)</div></div>
   </div>
 
   <!-- Network -->
@@ -377,9 +414,10 @@ html = f"""<!DOCTYPE html>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:#66bb6a"></div>Institusi PRO</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ef5350"></div>Institusi KONTRA</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#bdbdbd"></div>Institusi NETRAL</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#bdbdbd"></div>Institusi NETRAL (PRO=KONTRA)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffd54f"></div>Institusi AMBIGU (pernyataan dua sisi)</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ce93d8"></div>Aktor → 7 Variabel Kebijakan</div>
-      <div class="legend-item"><span style="color:#aaa;font-size:0.75rem">— EDGE HIJAU: PRO,   MERAH: KONTRA,   ABU: NETRAL</span></div>
+      <div class="legend-item"><span style="color:#aaa;font-size:0.75rem">— EDGE HIJAU: PRO,   MERAH: KONTRA,   ABU: NETRAL,   KUNING: AMBIGU</span></div>
     </div>
     <div style="width:100%;overflow:hidden;">{network_section}</div>
   </div>
