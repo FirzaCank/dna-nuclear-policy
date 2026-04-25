@@ -154,10 +154,10 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>"""
 
-def build_pyvis_html(edges_net, concept_color, out_path):
+def build_pyvis_html(edges_net, concept_color, out_path, inst_stats_override=None):
     """Build a pyvis network HTML string for given edges_net."""
     from pyvis.network import Network
-    import base64
+    _stats = inst_stats_override if inst_stats_override is not None else inst_stats
     net = Network(height="1100px", width="100%", bgcolor="#1a1a2e",
                   directed=True, notebook=False)
     net.set_options(json.dumps({
@@ -189,7 +189,7 @@ def build_pyvis_html(edges_net, concept_color, out_path):
                     title=f"{t}\nConnected to {deg} institutions", group="concept",
                     font={"color": "#000000", "size": 18, "face": "arial", "bold": True, "strokeWidth": 0})
     active_institutions = set(edges_net["institution"])
-    for _, row in inst_stats[inst_stats["institution"].isin(active_institutions)].iterrows():
+    for _, row in _stats[_stats["institution"].isin(active_institutions)].iterrows():
         dom_pos = str(row.get("dominant_pos", "NETRAL")).strip().upper()
         color = {"PRO": "#66bb6a", "KONTRA": "#ef5350", "NETRAL": "#bdbdbd", "AMBIGU": "#ffd54f"}.get(dom_pos, "#bdbdbd")
         title = (f"{row['institution']}\nTotal pernyataan: {row.get('n_statements',0)}\n"
@@ -216,22 +216,120 @@ def build_pyvis_html(edges_net, concept_color, out_path):
         f.write(html)
     return html
 
+# ── Period definitions ─────────────────────────────────────────────────────────
+PERIODS = {
+    "jokowi1": ("Jokowi Periode 1", "2014-10-20", "2019-10-20"),
+    "jokowi2": ("Jokowi Periode 2", "2019-10-20", "2024-10-20"),
+    "prabowo": ("Prabowo",          "2024-10-20", None),
+}
+
+def build_inst_stats_for_period(flat_period, actor_to_inst):
+    """Build inst_stats (aggregated) from a period-filtered flat_df slice."""
+    if flat_period.empty:
+        return pd.DataFrame(columns=["institution","n_statements","pro_count","kontra_count","netral_count","ambigu_count","dominant_pos","members"])
+    flat_period = flat_period.copy()
+    flat_period["institution"] = flat_period["actor"].map(actor_to_inst)
+    flat_period = flat_period[flat_period["institution"].notna()]
+    grp = flat_period.groupby("institution")
+    stats = grp.agg(
+        n_statements=("position", "count"),
+        pro_count=("position",    lambda x: (x=="PRO").sum()),
+        kontra_count=("position", lambda x: (x=="KONTRA").sum()),
+        netral_count=("position", lambda x: (x=="NETRAL").sum()),
+        ambigu_count=("position", lambda x: (x=="AMBIGU").sum()),
+    ).reset_index()
+    stats["dominant_pos"] = stats.apply(_dominant_pos, axis=1)
+    stats["members"] = stats["institution"].map(
+        flat_period.groupby("institution")["actor"].apply(lambda x: ", ".join(sorted(set(x))))
+    )
+    return stats
+
+def build_edges_net_for_period(edges_raw, actors_in_period, actor_to_inst):
+    """Build institution-level edges for actors active in a given period."""
+    ef = edges_raw[edges_raw["source"].isin(actors_in_period)].copy()
+    ef["institution"] = ef["source"].map(actor_to_inst)
+    ef = ef[ef["institution"].notna()]
+    ei = ef.groupby(["institution", "target", "position"])["weight"].sum().reset_index()
+    if ei.empty:
+        return ei
+    return ei.loc[ei.groupby(["institution", "target"])["weight"].idxmax()].reset_index(drop=True)
+
+# Parse dates on flat_df once
+flat_df["date_parsed"] = pd.to_datetime(flat_df["date"], errors="coerce")
+
+# Build per-period networks
+network_sections = {}
+period_meta      = {}   # pid → dict of metadata counts
+
+def _meta_from_stats(stats):
+    """Compute institution-level metadata from inst_stats DataFrame."""
+    dp = stats["dominant_pos"].value_counts()
+    return {
+        "n_inst":    len(stats),
+        "n_pro":     int(dp.get("PRO",    0)),
+        "n_kontra":  int(dp.get("KONTRA", 0)),
+        "n_netral":  int(dp.get("NETRAL", 0)),
+        "n_ambigu":  int(dp.get("AMBIGU", 0)),
+        "n_stmt":    int(stats["n_statements"].sum()),
+    }
+
 try:
     import base64
-    html_var = build_pyvis_html(edges_net_var, "#ce93d8", OUTDIR / "network_dna_var.html")
-    b64_var = base64.b64encode(html_var.encode("utf-8")).decode("ascii")
-    network_section = f'''
-<div id="graph-var" style="display:block"><iframe src="data:text/html;base64,{b64_var}" width="100%" height="1100px" style="border:none;display:block;"></iframe></div>
-'''
-    network_head = ""
-    print("  [OK] Network graph (compact) dibuat → network_dna_var.html")
+    # Tab 0: Keseluruhan (semua periode)
+    html_all = build_pyvis_html(edges_net_var, "#ce93d8", OUTDIR / "network_dna_var.html")
+    b64_all  = base64.b64encode(html_all.encode("utf-8")).decode("ascii")
+    network_sections["all"] = f'<iframe src="data:text/html;base64,{b64_all}" width="100%" height="1100px" style="border:none;display:block;"></iframe>'
+    period_meta["all"] = _meta_from_stats(inst_stats)
+    print("  [OK] Network keseluruhan → network_dna_var.html")
+
+    for pid, (plabel, pstart, pend) in PERIODS.items():
+        mask = flat_df["date_parsed"] >= pstart
+        if pend:
+            mask &= flat_df["date_parsed"] < pend
+        flat_p        = flat_df[mask].copy()
+        actors_p      = set(flat_p["actor"].dropna().unique())
+        inst_stats_p  = build_inst_stats_for_period(flat_p, actor_to_inst)
+        edges_net_p   = build_edges_net_for_period(edges_av, actors_p, actor_to_inst)
+        period_meta[pid] = _meta_from_stats(inst_stats_p)
+        if edges_net_p.empty:
+            network_sections[pid] = f"<p style='color:#aaa;padding:20px'>Tidak ada data untuk {plabel}</p>"
+            continue
+        out_path = OUTDIR / f"network_dna_{pid}.html"
+        html_p = build_pyvis_html(edges_net_p, "#ce93d8", out_path, inst_stats_override=inst_stats_p)
+        b64_p  = base64.b64encode(html_p.encode("utf-8")).decode("ascii")
+        network_sections[pid] = f'<iframe src="data:text/html;base64,{b64_p}" width="100%" height="1100px" style="border:none;display:block;"></iframe>'
+        print(f"  [OK] Network {plabel} → network_dna_{pid}.html ({len(edges_net_p)} edges)")
 except ImportError:
-    print("  [SKIP] pyvis tidak terinstall — jalankan: pip install pyvis")
-    network_section = "<p style='color:#aaa'>Install pyvis untuk network graph: <code>pip install pyvis</code></p>"
-    network_head = ""
+    for pid in ["all"] + list(PERIODS.keys()):
+        network_sections[pid] = "<p style='color:#aaa'>Install pyvis: <code>pip install pyvis</code></p>"
+        period_meta[pid] = {"n_inst":0,"n_pro":0,"n_kontra":0,"n_netral":0,"n_ambigu":0,"n_stmt":0}
 
 
-# ── 2. Chart data (JSON untuk Chart.js — no matplotlib dependency) ────────────
+def _meta_html(pid):
+    m = period_meta.get(pid, {})
+    n = m.get("n_inst", 0)
+    if n == 0:
+        return ""
+    return f"""<div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 4px 0;font-size:0.82rem;">
+      <span style="background:#1a1a2e;border:1px solid #2a2a3e;border-radius:6px;padding:6px 14px;">
+        🏛 <b style="color:#ce93d8">{n}</b> Institusi
+      </span>
+      <span style="background:#1a1a2e;border:1px solid #66bb6a;border-radius:6px;padding:6px 14px;">
+        <b style="color:#66bb6a">{m.get('n_pro',0)}</b> PRO
+      </span>
+      <span style="background:#1a1a2e;border:1px solid #ef5350;border-radius:6px;padding:6px 14px;">
+        <b style="color:#ef5350">{m.get('n_kontra',0)}</b> KONTRA
+      </span>
+      <span style="background:#1a1a2e;border:1px solid #bdbdbd;border-radius:6px;padding:6px 14px;">
+        <b style="color:#bdbdbd">{m.get('n_netral',0)}</b> NETRAL
+      </span>
+      <span style="background:#1a1a2e;border:1px solid #ffd54f;border-radius:6px;padding:6px 14px;">
+        <b style="color:#ffd54f">{m.get('n_ambigu',0)}</b> AMBIGU
+      </span>
+      <span style="background:#1a1a2e;border:1px solid #4fc3f7;border-radius:6px;padding:6px 14px;">
+        📝 <b style="color:#4fc3f7">{m.get('n_stmt',0)}</b> Pernyataan
+      </span>
+    </div>"""
 
 # Bar: posisi per variabel — gunakan flat_df yang sudah difilter (≥MIN_STATEMENTS)
 pos_cols = [c for c in summary_var.columns if c in ("PRO", "KONTRA", "NETRAL")]
@@ -410,7 +508,6 @@ html = f"""<!DOCTYPE html>
   <!-- Network -->
   <div class="section">
     <h2>DNA Bipartite Network</h2>
-    {network_head}
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:#66bb6a"></div>Institusi PRO</div>
       <div class="legend-item"><div class="legend-dot" style="background:#ef5350"></div>Institusi KONTRA</div>
@@ -419,8 +516,40 @@ html = f"""<!DOCTYPE html>
       <div class="legend-item"><div class="legend-dot" style="background:#ce93d8"></div>Aktor → 7 Variabel Kebijakan</div>
       <div class="legend-item"><span style="color:#aaa;font-size:0.75rem">— EDGE HIJAU: PRO,   MERAH: KONTRA,   ABU: NETRAL,   KUNING: AMBIGU</span></div>
     </div>
-    <div style="width:100%;overflow:hidden;">{network_section}</div>
+    <!-- Period Tabs -->
+    <div style="display:flex;gap:0;margin:16px 0 0 0;border-bottom:2px solid #2a2a3e;flex-wrap:wrap;">
+      <button onclick="switchPeriod('all')" id="tab-all"
+        style="padding:10px 24px;background:#7c4dff;color:#fff;border:none;cursor:pointer;font-size:0.95rem;border-radius:8px 8px 0 0;margin-right:4px;font-family:inherit;">
+        Keseluruhan<br><span style="font-size:0.75rem;opacity:0.8">Semua Periode</span>
+      </button>
+      <button onclick="switchPeriod('jokowi1')" id="tab-jokowi1"
+        style="padding:10px 24px;background:#2a2a3e;color:#90a4ae;border:none;cursor:pointer;font-size:0.95rem;border-radius:8px 8px 0 0;margin-right:4px;font-family:inherit;">
+        Jokowi Periode 1<br><span style="font-size:0.75rem;opacity:0.8">Okt 2014 – Okt 2019</span>
+      </button>
+      <button onclick="switchPeriod('jokowi2')" id="tab-jokowi2"
+        style="padding:10px 24px;background:#2a2a3e;color:#90a4ae;border:none;cursor:pointer;font-size:0.95rem;border-radius:8px 8px 0 0;margin-right:4px;font-family:inherit;">
+        Jokowi Periode 2<br><span style="font-size:0.75rem;opacity:0.8">Okt 2019 – Okt 2024</span>
+      </button>
+      <button onclick="switchPeriod('prabowo')" id="tab-prabowo"
+        style="padding:10px 24px;background:#2a2a3e;color:#90a4ae;border:none;cursor:pointer;font-size:0.95rem;border-radius:8px 8px 0 0;font-family:inherit;">
+        Prabowo<br><span style="font-size:0.75rem;opacity:0.8">Okt 2024 – Sekarang</span>
+      </button>
+    </div>
+    <div id="net-all"      style="width:100%;overflow:hidden;display:block;">{_meta_html('all')}{network_sections.get('all','')}</div>
+    <div id="net-jokowi1" style="width:100%;overflow:hidden;display:none;">{_meta_html('jokowi1')}{network_sections.get('jokowi1','')}</div>
+    <div id="net-jokowi2" style="width:100%;overflow:hidden;display:none;">{_meta_html('jokowi2')}{network_sections.get('jokowi2','')}</div>
+    <div id="net-prabowo"  style="width:100%;overflow:hidden;display:none;">{_meta_html('prabowo')}{network_sections.get('prabowo','')}</div>
   </div>
+  <script>
+  function switchPeriod(pid) {{
+    ['all','jokowi1','jokowi2','prabowo'].forEach(function(p) {{
+      document.getElementById('net-' + p).style.display = (p === pid) ? 'block' : 'none';
+      var tab = document.getElementById('tab-' + p);
+      tab.style.background = (p === pid) ? '#7c4dff' : '#2a2a3e';
+      tab.style.color      = (p === pid) ? '#fff'    : '#90a4ae';
+    }});
+  }}
+  </script>
 
   <!-- Posisi & Top Aktor -->
   <div class="chart-row">
