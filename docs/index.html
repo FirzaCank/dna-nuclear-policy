@@ -242,6 +242,38 @@ canvas{max-height:320px}
 
   </div>
 
+  <!-- ── Distribusi Tema per Periode ── -->
+  <div class="section">
+    <h2>Distribusi Tema Wacana per Periode Pemerintahan</h2>
+    <p style="font-size:0.82rem;color:#c9d1d9;margin-bottom:14px;">
+      Chart ini bersifat statis — menampilkan perbandingan ketiga periode sekaligus.
+      Highlight: <b style="color:#D85A30">Keamanan &amp; Kedaulatan</b>.
+    </p>
+    <div class="chart-row">
+      <div>
+        <div style="font-size:0.8rem;color:#c9d1d9;margin-bottom:6px;" id="temaChartLabel">Proporsi tema (%)</div>
+        <div style="position:relative;height:300px;">
+          <canvas id="chartTemaPct" role="img"
+            aria-label="Stacked bar chart proporsi tema wacana nuklir per periode pemerintahan"></canvas>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;color:#c9d1d9;margin-bottom:6px;">Jumlah pernyataan (n)</div>
+        <div style="position:relative;height:300px;">
+          <canvas id="chartTemaAbs" role="img"
+            aria-label="Stacked bar chart jumlah pernyataan tema wacana nuklir per periode pemerintahan"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- Legend -->
+    <div id="temaLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:0.78rem;color:#c9d1d9;"></div>
+    <!-- Insight box — berubah sesuai period dropdown -->
+    <div id="temaInsight"
+      style="margin-top:14px;padding:10px 14px;background:#16213e;
+             border-left:3px solid #D85A30;border-radius:8px;
+             font-size:0.82rem;color:#c9d1d9;line-height:1.6;"></div>
+  </div>
+
   <!-- ── Charts row 1 ── -->
   <div class="chart-row">
     <div class="section">
@@ -284,14 +316,186 @@ canvas{max-height:320px}
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════
+       ADVANCED ANALYTICS — Concept Evolution, Shift Matrix, Diverging
+  ══════════════════════════════════════════════════════ -->
+
+  <!-- ── Concept Evolution Timeline ───────────────────────────────── -->
+  <div class="section">
+    <h2>Concept Evolution Timeline</h2>
+    <p style="font-size:0.8rem;color:#c9d1d9;margin-bottom:12px;">
+      Volume pernyataan tiap kluster keyword per kuartal — stacked area chart.
+      Pergeseran dominasi konsep terlihat dari bentuk 'arus'. Chart ini selalu
+      menampilkan keseluruhan timeline; gunakan toggle untuk melihat proporsi relatif.
+    </p>
+
+    <!-- Mode toggle: stacked vs 100% -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;" id="areaToggle">
+      <button class="adv-toggle active" data-mode="stacked"
+        onclick="setAreaMode('stacked',this)"
+        style="padding:5px 14px;border-radius:20px;font-size:0.78rem;cursor:pointer;
+               border:1.5px solid #b197fc;background:#0f0f1a;color:#e8e8e8;
+               font-family:inherit;transition:all .15s;">
+        Stacked (Absolut)
+      </button>
+      <button class="adv-toggle" data-mode="pct"
+        onclick="setAreaMode('pct',this)"
+        style="padding:5px 14px;border-radius:20px;font-size:0.78rem;cursor:pointer;
+               border:1.5px solid #2e3250;background:#16213e;color:#c9d1d9;
+               font-family:inherit;transition:all .15s;">
+        100% Normalised
+      </button>
+    </div>
+
+    <div style="position:relative;height:360px;">
+      <canvas id="chartArea" role="img"
+        aria-label="Stacked area chart volume konsep nuklir per kuartal"></canvas>
+    </div>
+
+    <!-- Keyword legend (dynamic) -->
+    <div id="areaLegend"
+      style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;
+             font-size:0.73rem;color:#c9d1d9;"></div>
+
+    <div style="margin-top:12px;padding:10px 14px;background:#16213e;
+                border-left:3px solid #b197fc;border-radius:8px;
+                font-size:0.81rem;color:#c9d1d9;line-height:1.65;">
+      <b>Cara baca:</b> tiap pita warna = satu kluster keyword. Pita melebar → dominasi
+      meningkat. Persilangan antar pita = <em>discourse shift</em>. Mode normalised memperlihatkan
+      pergeseran proporsi meski total artikel berbeda antar kuartal.
+    </div>
+  </div>
+
+  <!-- ── Position Shift Matrix ─────────────────────────────────────── -->
+  <div class="section">
+    <h2>Position Shift Matrix</h2>
+    <p style="font-size:0.8rem;color:#c9d1d9;margin-bottom:12px;">
+      Posisi dominan tiap aktor lintas rezim pemerintahan. Aktor bertanda
+      <span style="background:#ffd43b;color:#000;padding:1px 6px;border-radius:4px;
+                  font-size:0.72rem;font-weight:700;">PIVOT</span>
+      mengubah posisi antar periode — indikasi <em>political pivot</em> &amp; oportunisme wacana.
+      Terhubung dengan teori advocacy coalition.
+    </p>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:0.78rem;">
+      <span style="display:flex;align-items:center;gap:6px;color:#c9d1d9;">
+        <span style="width:14px;height:14px;border-radius:3px;background:#69db7c;display:inline-block;"></span>PRO
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;color:#c9d1d9;">
+        <span style="width:14px;height:14px;border-radius:3px;background:#ff6b6b;display:inline-block;"></span>KONTRA
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;color:#c9d1d9;">
+        <span style="width:14px;height:14px;border-radius:3px;background:#ced4da;display:inline-block;"></span>NETRAL
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;color:#c9d1d9;">
+        <span style="width:14px;height:14px;border-radius:3px;background:#ffd43b;display:inline-block;"></span>AMBIGU
+      </span>
+      <span style="color:#c9d1d9;font-size:0.74rem;">— angka dalam sel = jumlah pernyataan periode tersebut</span>
+    </div>
+
+    <!-- Search + Pivot filter -->
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+      <input id="mtxSearch" type="text" placeholder="🔍 Cari aktor…"
+        oninput="filterMatrix(this.value)"
+        style="background:#16213e;color:#e8e8e8;
+               border:1.5px solid #2e3250;border-radius:8px;
+               padding:7px 12px;font-size:0.84rem;font-family:inherit;
+               width:240px;outline-offset:2px;">
+      <label style="font-size:0.8rem;color:#c9d1d9;display:flex;
+                    align-items:center;gap:7px;cursor:pointer;">
+        <input type="checkbox" id="pivotOnly"
+          onchange="filterMatrix(document.getElementById('mtxSearch').value)"
+          style="accent-color:#ffd43b;width:15px;height:15px;">
+        Hanya PIVOT
+      </label>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table id="matrixTable"
+        style="border-collapse:collapse;width:100%;font-size:0.78rem;">
+        <thead>
+          <tr style="border-bottom:2px solid #2e3250;">
+            <th style="padding:8px 12px;text-align:left;color:#c9d1d9;
+                       min-width:170px;font-weight:600;">Aktor</th>
+            <th style="padding:8px 12px;text-align:center;color:#c9d1d9;font-weight:600;">Jokowi 1</th>
+            <th style="padding:8px 12px;text-align:center;color:#c9d1d9;font-weight:600;">Jokowi 2</th>
+            <th style="padding:8px 12px;text-align:center;color:#c9d1d9;font-weight:600;">Prabowo</th>
+            <th style="padding:8px 12px;text-align:center;color:#c9d1d9;
+                       font-weight:600;min-width:55px;">Total</th>
+          </tr>
+        </thead>
+        <tbody id="matrixBody"><!-- filled by JS --></tbody>
+      </table>
+    </div>
+    <div id="matrixCount" style="font-size:0.76rem;color:#c9d1d9;margin-top:8px;"></div>
+  </div>
+
+
 </div><!-- /.container -->
 
 <!-- ═══════════════════ JavaScript ═══════════════════ -->
 <script>
 /* ── All period data from Python ── */
-const ALL_DATA = {"all": {"stats": {"total_news": 529, "total_stmt": 1242, "total_actors": 169, "total_concepts": 1785, "pro_pct": 78, "kontra_pct": 13, "netral_pct": 7, "ambigu_pct": 2}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Ideologi & Integritas Data", "Interaksi Pemangku Kepentingan", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE"], "pro": [121, 205, 32, 120, 278, 55, 158], "kontra": [32, 11, 0, 52, 15, 44, 11], "netral": [17, 9, 0, 21, 9, 19, 14]}, "actors": {"labels": ["Bahlil Lahadalia (ESDM)", "Pemerintah", "Dadan Kusdiana (DEN)", "Hashim Djojohadikusumo (Istana)", "Syaiful Bakhri (BRIN)", "Yuliot Tanjung (ESDM)", "Arifin Tasrif (ESDM)", "Pemerintah Indonesia (Pemerintah)", "Fabby Tumiwa (IESR)", "Eddy Soeparno (DPR)", "Mulyanto (DPR)", "Bambang Patijaya (DPR)", "Yuliot (ESDM)", "Airlangga Hartarto (Kemenko Ekonomi)", "BRIN"], "values": [58, 48, 39, 39, 36, 32, 30, 28, 25, 23, 22, 19, 19, 18, 18], "colors": ["#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#69db7c"]}, "sent": {"labels": ["POSITIVE", "NEUTRAL", "NEGATIVE"], "values": [654, 398, 194]}, "cross": {"positions": ["AMBIGU", "KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [5, 146, 16, 27]}, {"label": "NEUTRAL", "data": [14, 15, 66, 303]}, {"label": "POSITIVE", "data": [0, 6, 7, 641]}]}, "trend": {"labels": ["2015-01", "2015-04", "2016-10", "2017-09", "2017-11", "2018-09", "2018-12", "2019-07", "2019-08", "2019-11", "2020-02", "2020-03", "2020-07", "2020-08", "2020-09", "2020-10", "2020-12", "2021-02", "2021-04", "2021-05", "2021-06", "2021-08", "2021-10", "2021-11", "2022-01", "2022-03", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04"], "pro": [1, 1, 2, 1, 0, 1, 0, 1, 4, 4, 2, 1, 2, 0, 0, 2, 0, 2, 3, 1, 0, 0, 4, 5, 3, 5, 1, 1, 3, 1, 2, 2, 11, 3, 4, 2, 4, 1, 3, 2, 8, 3, 6, 8, 5, 4, 2, 5, 2, 3, 4, 4, 5, 10, 10, 5, 11, 8, 12, 6, 7, 20, 22, 11, 17, 19, 33, 12, 14, 18, 29, 30, 10], "kontra": [0, 0, 0, 1, 2, 0, 0, 1, 0, 0, 3, 0, 0, 1, 3, 1, 0, 0, 1, 3, 1, 2, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 2, 1, 0, 2, 0, 0, 1, 2, 4, 3, 0, 4, 0, 2, 2, 2, 2, 0, 0, 1, 1, 1, 0, 0, 0, 3, 5, 0, 4, 7, 2, 2, 2, 1, 6, 2, 1, 4, 3, 0, 0], "netral": [0, 0, 2, 0, 0, 1, 1, 0, 0, 0, 4, 2, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 3, 0, 1, 1, 0, 1, 0, 1, 1, 0, 2, 2, 0, 1, 1, 1, 0, 1, 0, 2, 0, 1, 0, 0, 2, 1, 1, 1, 3, 4, 5, 0, 4, 2, 5, 0, 1, 3, 4, 4, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR", "FRAKSI"], "values": [1009, 190, 37, 6]}, "kontra": {"labels": ["Fabby Tumiwa (IESR)", "Mulyanto (DPR)", "Yudi Utomo Imardjoko (UGM)", "Ahmad Subhan Hafiz (WALHI Babel)", "Arcandra Tahar (ESDM)", "Marthin Hadiwinata (Ekomarin)", "Greenpeace", "Herman Darnel Ibrahim (DEN)", "Koalisi Masyarakat Sipil untuk Transisi Energi Berkeadilan (KMSTEB)", "Mahawira Singh Dillon (CERAH)"], "values": [17, 10, 9, 8, 7, 7, 5, 5, 5, 4]}, "var_chart": {"labels": ["Keamanan Nasional & Kedaulatan", "Ideologi & Integritas Data", "Intervensi & Pembiayaan", "Transisi Energi & NZE", "Dinamika Pembahasan DIM", "Periferalisasi & Hak Masyarakat", "Interaksi Pemangku Kepentingan"], "values": [306, 225, 199, 183, 177, 120, 32]}}, "jokowi1": {"stats": {"total_news": 16, "total_stmt": 34, "total_actors": 12, "total_concepts": 1785, "pro_pct": 62, "kontra_pct": 26, "netral_pct": 12, "ambigu_pct": 0}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Interaksi Pemangku Kepentingan", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat"], "pro": [2, 3, 3, 6, 7], "kontra": [0, 0, 8, 0, 1], "netral": [0, 0, 3, 1, 0]}, "actors": {"labels": ["Arcandra Tahar (ESDM)", "Djarot S Wisnubroto (BATAN)", "Djarot Sulistio Wisnubroto (BATAN)", "Dr Kurtubi (DPR)", "Dr Netty Herawati, M.Si (HIMNI)", "Indonesia", "Melky Nahar (JATAM)", "Muhammad Nasir (Kemendikti)", "Oesman Sapta Odang (DPD)", "Fahmy Radhi (UGM)", "Suryantoro (BRIN)", "Pemerintah"], "values": [5, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 1], "colors": ["#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#ced4da", "#ced4da"]}, "sent": {"labels": ["POSITIVE", "NEUTRAL", "NEGATIVE"], "values": [52, 43, 16]}, "cross": {"positions": ["KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [11, 0, 5]}, {"label": "NEUTRAL", "data": [5, 9, 29]}, {"label": "POSITIVE", "data": [2, 2, 48]}]}, "trend": {"labels": ["2015-01", "2015-04", "2016-10", "2017-09", "2017-11", "2018-09", "2018-12", "2019-07", "2019-08"], "pro": [1, 1, 2, 1, 0, 1, 0, 1, 4], "kontra": [0, 0, 0, 1, 2, 0, 0, 1, 0], "netral": [0, 0, 2, 0, 0, 1, 1, 0, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR"], "values": [28, 4, 2]}, "kontra": {"labels": ["Arcandra Tahar (ESDM)", "Melky Nahar (JATAM)", "Suryantoro (BRIN)"], "values": [5, 3, 1]}, "var_chart": {"labels": ["Intervensi & Pembiayaan", "Periferalisasi & Hak Masyarakat", "Keamanan Nasional & Kedaulatan", "Interaksi Pemangku Kepentingan", "Dinamika Pembahasan DIM"], "values": [14, 8, 7, 3, 2]}}, "jokowi2": {"stats": {"total_news": 191, "total_stmt": 421, "total_actors": 91, "total_concepts": 1785, "pro_pct": 68, "kontra_pct": 21, "netral_pct": 9, "ambigu_pct": 2}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Ideologi & Integritas Data", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE"], "pro": [80, 61, 46, 33, 26, 41], "kontra": [27, 7, 16, 10, 27, 2], "netral": [13, 1, 7, 0, 10, 7]}, "actors": {"labels": ["Arifin Tasrif (ESDM)", "Pemerintah", "Mulyanto (DPR)", "Syaiful Bakhri (BRIN)", "Dadan Kusdiana (DEN)", "Bob S. Effendi (Thorcon)", "Djarot Sulistio Wisnubroto (BATAN)", "Suryantoro (BRIN)", "Edy Giri Rachman Putra (BRIN)", "Fabby Tumiwa (IESR)", "Anhar Riza Antariksawan (BATAN)", "Sugeng Suparwoto (DPR)", "Topan Setiadipura (BRIN)", "Akmaluddin Rachim (PUSHEP)", "Djoko Siswanto (DEN)"], "values": [30, 24, 22, 14, 13, 10, 10, 10, 9, 9, 8, 8, 8, 7, 7], "colors": ["#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#ced4da", "#69db7c"]}, "sent": {"labels": ["POSITIVE", "NEUTRAL", "NEGATIVE"], "values": [362, 247, 151]}, "cross": {"positions": ["AMBIGU", "KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [2, 116, 13, 20]}, {"label": "NEUTRAL", "data": [6, 11, 50, 180]}, {"label": "POSITIVE", "data": [0, 5, 5, 352]}]}, "trend": {"labels": ["2019-11", "2020-02", "2020-03", "2020-07", "2020-08", "2020-09", "2020-10", "2020-12", "2021-02", "2021-04", "2021-05", "2021-06", "2021-08", "2021-10", "2021-11", "2022-01", "2022-03", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10"], "pro": [4, 2, 1, 2, 0, 0, 2, 0, 2, 3, 1, 0, 0, 4, 5, 3, 5, 1, 1, 3, 1, 2, 2, 11, 3, 4, 2, 4, 1, 3, 2, 8, 3, 6, 8, 5, 4, 2, 5, 2, 3, 4, 4, 5, 10, 7], "kontra": [0, 3, 0, 0, 1, 3, 1, 0, 0, 1, 3, 1, 2, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 2, 1, 0, 2, 0, 0, 1, 2, 4, 3, 0, 4, 0, 2, 2, 2, 2, 0, 0, 1, 1, 1, 0], "netral": [0, 4, 2, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 3, 0, 1, 1, 0, 1, 0, 1, 1, 0, 2, 2, 0, 1, 1, 1, 0, 1, 0, 2, 0, 1, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR", "FRAKSI"], "values": [339, 73, 6, 3]}, "kontra": {"labels": ["Mulyanto (DPR)", "Marthin Hadiwinata (Ekomarin)", "Herman Darnel Ibrahim (DEN)", "Fabby Tumiwa (IESR)", "Mahawira Singh Dillon (CERAH)", "Adam (WALHI)", "Defiyan Cori (Ekonom)", "Didit Haryo Wicaksono (Greenpeace)", "Djarot Sulistio Wisnubroto (BATAN)", "Dr H Mulyanto (DPR)"], "values": [10, 6, 5, 4, 4, 3, 3, 3, 3, 3]}, "var_chart": {"labels": ["Dinamika Pembahasan DIM", "Intervensi & Pembiayaan", "Ideologi & Integritas Data", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE", "Keamanan Nasional & Kedaulatan"], "values": [125, 70, 69, 63, 50, 44]}}, "prabowo": {"stats": {"total_news": 322, "total_stmt": 787, "total_actors": 119, "total_concepts": 1785, "pro_pct": 84, "kontra_pct": 8, "netral_pct": 6, "ambigu_pct": 2}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Ideologi & Integritas Data", "Interaksi Pemangku Kepentingan", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE"], "pro": [39, 144, 29, 71, 239, 22, 117], "kontra": [5, 4, 0, 28, 5, 16, 9], "netral": [4, 8, 0, 11, 8, 9, 7]}, "actors": {"labels": ["Bahlil Lahadalia (ESDM)", "Hashim Djojohadikusumo (Istana)", "Yuliot Tanjung (ESDM)", "Dadan Kusdiana (DEN)", "Pemerintah", "Pemerintah Indonesia (Pemerintah)", "Syaiful Bakhri (BRIN)", "Bambang Patijaya (DPR)", "Yuliot (ESDM)", "Airlangga Hartarto (Kemenko Ekonomi)", "Eddy Soeparno (DPR)", "BRIN", "Fabby Tumiwa (IESR)", "Arif Satria (BRIN)", "Zainal Arifin (Bapeten)"], "values": [58, 39, 32, 26, 23, 22, 22, 19, 19, 17, 17, 16, 16, 15, 15], "colors": ["#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c"]}, "sent": {"labels": ["POSITIVE", "NEUTRAL", "NEGATIVE"], "values": [558, 328, 118]}, "cross": {"positions": ["AMBIGU", "KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [3, 84, 13, 18]}, {"label": "NEUTRAL", "data": [12, 8, 50, 258]}, {"label": "POSITIVE", "data": [0, 5, 7, 546]}]}, "trend": {"labels": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04"], "pro": [3, 5, 11, 8, 12, 6, 7, 20, 22, 11, 17, 19, 33, 12, 14, 18, 29, 30, 10], "kontra": [0, 0, 0, 3, 5, 0, 4, 7, 2, 2, 2, 1, 6, 2, 1, 4, 3, 0, 0], "netral": [0, 0, 2, 1, 1, 1, 3, 4, 5, 0, 4, 2, 5, 0, 1, 3, 4, 4, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR", "FRAKSI"], "values": [642, 113, 29, 3]}, "kontra": {"labels": ["Fabby Tumiwa (IESR)", "Ahmad Subhan Hafiz (WALHI Babel)", "Yudi Utomo Imardjoko (UGM)", "Koalisi Masyarakat Sipil untuk Transisi Energi Berkeadilan (KMSTEB)", "Wicaksono Gitawan (CERAH)", "Bhima Yudhistira (CELIOS)", "Dr. Ir. Herman Darnel Ibrahim, M.Sc, IPU, ASEAN Eng (Pakar/Akademisi)", "Greenpeace", "Hashim Djojohadikusumo (Istana)", "Hashim S. Djojohadikusumo (Istana)"], "values": [13, 6, 6, 5, 4, 3, 3, 3, 3, 3]}, "var_chart": {"labels": ["Keamanan Nasional & Kedaulatan", "Ideologi & Integritas Data", "Transisi Energi & NZE", "Intervensi & Pembiayaan", "Dinamika Pembahasan DIM", "Periferalisasi & Hak Masyarakat", "Interaksi Pemangku Kepentingan"], "values": [255, 156, 133, 115, 50, 49, 29]}}};
-const SENT_COLORS = ["#69db7c", "#ff6b6b", "#ced4da", "#ffd43b"];
+const ALL_DATA = {"all": {"stats": {"total_news": 529, "total_stmt": 1242, "total_actors": 169, "total_concepts": 1785, "pro_pct": 78, "kontra_pct": 13, "netral_pct": 7, "ambigu_pct": 2}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Ideologi & Integritas Data", "Interaksi Pemangku Kepentingan", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE"], "pro": [121, 205, 32, 120, 278, 55, 158], "kontra": [32, 11, 0, 52, 15, 44, 11], "netral": [17, 9, 0, 21, 9, 19, 14]}, "actors": {"labels": ["Bahlil Lahadalia (ESDM)", "Pemerintah", "Dadan Kusdiana (DEN)", "Hashim Djojohadikusumo (Istana)", "Syaiful Bakhri (BRIN)", "Yuliot Tanjung (ESDM)", "Arifin Tasrif (ESDM)", "Pemerintah Indonesia (Pemerintah)", "Fabby Tumiwa (IESR)", "Eddy Soeparno (DPR)", "Mulyanto (DPR)", "Bambang Patijaya (DPR)", "Yuliot (ESDM)", "Airlangga Hartarto (Kemenko Ekonomi)", "BRIN"], "values": [58, 48, 39, 39, 36, 32, 30, 28, 25, 23, 22, 19, 19, 18, 18], "colors": ["#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#69db7c"]}, "sent": {"labels": ["POSITIVE", "NEGATIVE", "NEUTRAL"], "values": [654, 194, 398]}, "cross": {"positions": ["AMBIGU", "KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [5, 146, 16, 27]}, {"label": "NEUTRAL", "data": [14, 15, 66, 303]}, {"label": "POSITIVE", "data": [0, 6, 7, 641]}]}, "trend": {"labels": ["2015-01", "2015-04", "2016-10", "2017-09", "2017-11", "2018-09", "2018-12", "2019-07", "2019-08", "2019-11", "2020-02", "2020-03", "2020-07", "2020-08", "2020-09", "2020-10", "2020-12", "2021-02", "2021-04", "2021-05", "2021-06", "2021-08", "2021-10", "2021-11", "2022-01", "2022-03", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04"], "pro": [1, 1, 2, 1, 0, 1, 0, 1, 4, 4, 2, 1, 2, 0, 0, 2, 0, 2, 3, 1, 0, 0, 4, 5, 3, 5, 1, 1, 3, 1, 2, 2, 11, 3, 4, 2, 4, 1, 3, 2, 8, 3, 6, 8, 5, 4, 2, 5, 2, 3, 4, 4, 5, 10, 10, 5, 11, 8, 12, 6, 7, 20, 22, 11, 17, 19, 33, 12, 14, 18, 29, 30, 10], "kontra": [0, 0, 0, 1, 2, 0, 0, 1, 0, 0, 3, 0, 0, 1, 3, 1, 0, 0, 1, 3, 1, 2, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 2, 1, 0, 2, 0, 0, 1, 2, 4, 3, 0, 4, 0, 2, 2, 2, 2, 0, 0, 1, 1, 1, 0, 0, 0, 3, 5, 0, 4, 7, 2, 2, 2, 1, 6, 2, 1, 4, 3, 0, 0], "netral": [0, 0, 2, 0, 0, 1, 1, 0, 0, 0, 4, 2, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 3, 0, 1, 1, 0, 1, 0, 1, 1, 0, 2, 2, 0, 1, 1, 1, 0, 1, 0, 2, 0, 1, 0, 0, 2, 1, 1, 1, 3, 4, 5, 0, 4, 2, 5, 0, 1, 3, 4, 4, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR", "FRAKSI"], "values": [1009, 190, 37, 6]}, "kontra": {"labels": ["Fabby Tumiwa (IESR)", "Mulyanto (DPR)", "Yudi Utomo Imardjoko (UGM)", "Ahmad Subhan Hafiz (WALHI Babel)", "Arcandra Tahar (ESDM)", "Marthin Hadiwinata (Ekomarin)", "Greenpeace", "Herman Darnel Ibrahim (DEN)", "Koalisi Masyarakat Sipil untuk Transisi Energi Berkeadilan (KMSTEB)", "Mahawira Singh Dillon (CERAH)"], "values": [17, 10, 9, 8, 7, 7, 5, 5, 5, 4]}, "var_chart": {"labels": ["Keamanan Nasional & Kedaulatan", "Ideologi & Integritas Data", "Intervensi & Pembiayaan", "Transisi Energi & NZE", "Dinamika Pembahasan DIM", "Periferalisasi & Hak Masyarakat", "Interaksi Pemangku Kepentingan"], "values": [306, 225, 199, 183, 177, 120, 32]}, "tema_by_period": {}}, "jokowi1": {"stats": {"total_news": 16, "total_stmt": 34, "total_actors": 12, "total_concepts": 1785, "pro_pct": 62, "kontra_pct": 26, "netral_pct": 12, "ambigu_pct": 0}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Interaksi Pemangku Kepentingan", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat"], "pro": [2, 3, 3, 6, 7], "kontra": [0, 0, 8, 0, 1], "netral": [0, 0, 3, 1, 0]}, "actors": {"labels": ["Arcandra Tahar (ESDM)", "Djarot S Wisnubroto (BATAN)", "Djarot Sulistio Wisnubroto (BATAN)", "Dr Kurtubi (DPR)", "Dr Netty Herawati, M.Si (HIMNI)", "Indonesia", "Melky Nahar (JATAM)", "Muhammad Nasir (Kemendikti)", "Oesman Sapta Odang (DPD)", "Fahmy Radhi (UGM)", "Suryantoro (BRIN)", "Pemerintah"], "values": [5, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 1], "colors": ["#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#ced4da", "#ced4da"]}, "sent": {"labels": ["POSITIVE", "NEGATIVE", "NEUTRAL"], "values": [52, 16, 43]}, "cross": {"positions": ["KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [11, 0, 5]}, {"label": "NEUTRAL", "data": [5, 9, 29]}, {"label": "POSITIVE", "data": [2, 2, 48]}]}, "trend": {"labels": ["2015-01", "2015-04", "2016-10", "2017-09", "2017-11", "2018-09", "2018-12", "2019-07", "2019-08"], "pro": [1, 1, 2, 1, 0, 1, 0, 1, 4], "kontra": [0, 0, 0, 1, 2, 0, 0, 1, 0], "netral": [0, 0, 2, 0, 0, 1, 1, 0, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR"], "values": [28, 4, 2]}, "kontra": {"labels": ["Arcandra Tahar (ESDM)", "Melky Nahar (JATAM)", "Suryantoro (BRIN)"], "values": [5, 3, 1]}, "var_chart": {"labels": ["Intervensi & Pembiayaan", "Periferalisasi & Hak Masyarakat", "Keamanan Nasional & Kedaulatan", "Interaksi Pemangku Kepentingan", "Dinamika Pembahasan DIM"], "values": [14, 8, 7, 3, 2]}, "tema_by_period": {}}, "jokowi2": {"stats": {"total_news": 191, "total_stmt": 421, "total_actors": 91, "total_concepts": 1785, "pro_pct": 68, "kontra_pct": 21, "netral_pct": 9, "ambigu_pct": 2}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Ideologi & Integritas Data", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE"], "pro": [80, 61, 46, 33, 26, 41], "kontra": [27, 7, 16, 10, 27, 2], "netral": [13, 1, 7, 0, 10, 7]}, "actors": {"labels": ["Arifin Tasrif (ESDM)", "Pemerintah", "Mulyanto (DPR)", "Syaiful Bakhri (BRIN)", "Dadan Kusdiana (DEN)", "Bob S. Effendi (Thorcon)", "Djarot Sulistio Wisnubroto (BATAN)", "Suryantoro (BRIN)", "Edy Giri Rachman Putra (BRIN)", "Fabby Tumiwa (IESR)", "Anhar Riza Antariksawan (BATAN)", "Sugeng Suparwoto (DPR)", "Topan Setiadipura (BRIN)", "Akmaluddin Rachim (PUSHEP)", "Djoko Siswanto (DEN)"], "values": [30, 24, 22, 14, 13, 10, 10, 10, 9, 9, 8, 8, 8, 7, 7], "colors": ["#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c", "#69db7c", "#ced4da", "#69db7c"]}, "sent": {"labels": ["POSITIVE", "NEGATIVE", "NEUTRAL"], "values": [362, 151, 247]}, "cross": {"positions": ["AMBIGU", "KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [2, 116, 13, 20]}, {"label": "NEUTRAL", "data": [6, 11, 50, 180]}, {"label": "POSITIVE", "data": [0, 5, 5, 352]}]}, "trend": {"labels": ["2019-11", "2020-02", "2020-03", "2020-07", "2020-08", "2020-09", "2020-10", "2020-12", "2021-02", "2021-04", "2021-05", "2021-06", "2021-08", "2021-10", "2021-11", "2022-01", "2022-03", "2022-05", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03", "2024-04", "2024-05", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10"], "pro": [4, 2, 1, 2, 0, 0, 2, 0, 2, 3, 1, 0, 0, 4, 5, 3, 5, 1, 1, 3, 1, 2, 2, 11, 3, 4, 2, 4, 1, 3, 2, 8, 3, 6, 8, 5, 4, 2, 5, 2, 3, 4, 4, 5, 10, 7], "kontra": [0, 3, 0, 0, 1, 3, 1, 0, 0, 1, 3, 1, 2, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 2, 1, 0, 2, 0, 0, 1, 2, 4, 3, 0, 4, 0, 2, 2, 2, 2, 0, 0, 1, 1, 1, 0], "netral": [0, 4, 2, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 3, 0, 1, 1, 0, 1, 0, 1, 1, 0, 2, 2, 0, 1, 1, 1, 0, 1, 0, 2, 0, 1, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR", "FRAKSI"], "values": [339, 73, 6, 3]}, "kontra": {"labels": ["Mulyanto (DPR)", "Marthin Hadiwinata (Ekomarin)", "Herman Darnel Ibrahim (DEN)", "Fabby Tumiwa (IESR)", "Mahawira Singh Dillon (CERAH)", "Adam (WALHI)", "Defiyan Cori (Ekonom)", "Didit Haryo Wicaksono (Greenpeace)", "Djarot Sulistio Wisnubroto (BATAN)", "Dr H Mulyanto (DPR)"], "values": [10, 6, 5, 4, 4, 3, 3, 3, 3, 3]}, "var_chart": {"labels": ["Dinamika Pembahasan DIM", "Intervensi & Pembiayaan", "Ideologi & Integritas Data", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE", "Keamanan Nasional & Kedaulatan"], "values": [125, 70, 69, 63, 50, 44]}, "tema_by_period": {}}, "prabowo": {"stats": {"total_news": 322, "total_stmt": 787, "total_actors": 119, "total_concepts": 1785, "pro_pct": 84, "kontra_pct": 8, "netral_pct": 6, "ambigu_pct": 2}, "pos": {"labels": ["Dinamika Pembahasan DIM", "Ideologi & Integritas Data", "Interaksi Pemangku Kepentingan", "Intervensi & Pembiayaan", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat", "Transisi Energi & NZE"], "pro": [39, 144, 29, 71, 239, 22, 117], "kontra": [5, 4, 0, 28, 5, 16, 9], "netral": [4, 8, 0, 11, 8, 9, 7]}, "actors": {"labels": ["Bahlil Lahadalia (ESDM)", "Hashim Djojohadikusumo (Istana)", "Yuliot Tanjung (ESDM)", "Dadan Kusdiana (DEN)", "Pemerintah", "Pemerintah Indonesia (Pemerintah)", "Syaiful Bakhri (BRIN)", "Bambang Patijaya (DPR)", "Yuliot (ESDM)", "Airlangga Hartarto (Kemenko Ekonomi)", "Eddy Soeparno (DPR)", "BRIN", "Fabby Tumiwa (IESR)", "Arif Satria (BRIN)", "Zainal Arifin (Bapeten)"], "values": [58, 39, 32, 26, 23, 22, 22, 19, 19, 17, 17, 16, 16, 15, 15], "colors": ["#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#69db7c", "#ff6b6b", "#69db7c", "#69db7c"]}, "sent": {"labels": ["POSITIVE", "NEGATIVE", "NEUTRAL"], "values": [558, 118, 328]}, "cross": {"positions": ["AMBIGU", "KONTRA", "NETRAL", "PRO"], "datasets": [{"label": "NEGATIVE", "data": [3, 84, 13, 18]}, {"label": "NEUTRAL", "data": [12, 8, 50, 258]}, {"label": "POSITIVE", "data": [0, 5, 7, 546]}]}, "trend": {"labels": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04"], "pro": [3, 5, 11, 8, 12, 6, 7, 20, 22, 11, 17, 19, 33, 12, 14, 18, 29, 30, 10], "kontra": [0, 0, 0, 3, 5, 0, 4, 7, 2, 2, 2, 1, 6, 2, 1, 4, 3, 0, 0], "netral": [0, 0, 2, 1, 1, 1, 3, 4, 5, 0, 4, 2, 5, 0, 1, 3, 4, 4, 0]}, "actor_type": {"labels": ["INDIVIDU", "INSTITUSI", "PAKAR", "FRAKSI"], "values": [642, 113, 29, 3]}, "kontra": {"labels": ["Fabby Tumiwa (IESR)", "Ahmad Subhan Hafiz (WALHI Babel)", "Yudi Utomo Imardjoko (UGM)", "Koalisi Masyarakat Sipil untuk Transisi Energi Berkeadilan (KMSTEB)", "Wicaksono Gitawan (CERAH)", "Bhima Yudhistira (CELIOS)", "Dr. Ir. Herman Darnel Ibrahim, M.Sc, IPU, ASEAN Eng (Pakar/Akademisi)", "Greenpeace", "Hashim Djojohadikusumo (Istana)", "Hashim S. Djojohadikusumo (Istana)"], "values": [13, 6, 6, 5, 4, 3, 3, 3, 3, 3]}, "var_chart": {"labels": ["Keamanan Nasional & Kedaulatan", "Ideologi & Integritas Data", "Transisi Energi & NZE", "Intervensi & Pembiayaan", "Dinamika Pembahasan DIM", "Periferalisasi & Hak Masyarakat", "Interaksi Pemangku Kepentingan"], "values": [255, 156, 133, 115, 50, 49, 29]}, "tema_by_period": {}}};
+const SENT_COLORS = ["#69db7c", "#ff6b6b", "#ced4da"];
 const ACTOR_TYPE_COLORS = ["#b197fc", "#4dabf7", "#ffd43b", "#69db7c", "#ff6b6b", "#ced4da"];
+const TEMA_DATA = {"period_labels": ["Jokowi Periode 1", "Jokowi Periode 2", "Prabowo"], "period_totals": [34, 421, 787], "datasets": [{"label": "Keamanan & Kedaulatan", "data_abs": [7, 44, 255], "data_pct": [20.6, 10.5, 32.4], "color": "#D85A30"}, {"label": "Intervensi & Pembiayaan", "data_abs": [14, 70, 115], "data_pct": [41.2, 16.6, 14.6], "color": "#4dabf7"}, {"label": "Hak Masyarakat", "data_abs": [8, 63, 49], "data_pct": [23.5, 15.0, 6.2], "color": "#69db7c"}, {"label": "Dinamika DIM", "data_abs": [2, 125, 50], "data_pct": [5.9, 29.7, 6.4], "color": "#ffd43b"}, {"label": "Ideologi & Data", "data_abs": [0, 69, 156], "data_pct": [0.0, 16.4, 19.8], "color": "#b197fc"}, {"label": "Transisi Energi", "data_abs": [0, 50, 133], "data_pct": [0.0, 11.9, 16.9], "color": "#ced4da"}, {"label": "Interaksi Pemangku", "data_abs": [3, 0, 29], "data_pct": [8.8, 0.0, 3.7], "color": "#ff6b6b"}], "insights": {"all": "Keseluruhan: Keamanan &amp; Kedaulatan adalah tema terbesar (25.1%). Intervensi &amp; Pembiayaan dan Ideologi &amp; Data mengikuti.", "jokowi1": "Jokowi 1 (73 pernyataan — data terbatas): Tema dominan adalah <b style='color:#4dabf7'>Intervensi &amp; Pembiayaan (37%)</b>, bukan Kedaulatan (33%). Wacana nuklir masih berfokus pada biaya dan investasi.", "jokowi2": "Jokowi 2: Distribusi relatif merata (~14–23%). Dinamika DIM (23%) memimpin — nuklir dalam perdebatan legislatif.", "prabowo": "<b style='color:#D85A30'>Era Prabowo: Keamanan &amp; Kedaulatan melonjak ke 31%</b> — bukti paling kuat untuk klaim reframing kedaulatan. Ideologi &amp; Data ikut naik (18%), Dinamika DIM turun drastis (5%)."}};
+
+/* ── Advanced analytics data (8A / 8B) ── */
+const EVOLUTION = {"quarters": ["2015Q1", "2016Q4", "2017Q3", "2017Q4", "2018Q3", "2019Q3", "2019Q4", "2020Q1", "2020Q3", "2020Q4", "2021Q1", "2021Q2", "2021Q4", "2022Q1", "2022Q2", "2022Q3", "2022Q4", "2023Q1", "2023Q2", "2023Q3", "2023Q4", "2024Q1", "2024Q2", "2024Q3", "2024Q4", "2025Q1", "2025Q2", "2025Q3", "2025Q4", "2026Q1", "2026Q2"], "datasets": [{"label": "PLTN ketahanan energi nasional", "data": [0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 5, 0, 0, 1, 4, 3, 6, 0, 24, 66, 5], "color": "#4dabf7"}, {"label": "kedaulatan energi nuklir", "data": [0, 0, 0, 0, 0, 3, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 4, 0, 2, 12, 33, 31, 12], "color": "#69db7c"}, {"label": "tarif listrik PLN nuklir", "data": [0, 5, 0, 5, 0, 0, 3, 0, 5, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 6, 0, 3, 0, 25, 22, 5, 8, 0], "color": "#ff6b6b"}, {"label": "SMR Indonesia reaktor", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 4, 2, 2, 0, 3, 0, 5, 2, 20, 15, 3, 29, 0], "color": "#ffd43b"}, {"label": "limbah radioaktif nuklir Indonesia", "data": [0, 0, 2, 0, 0, 0, 0, 16, 0, 0, 0, 3, 0, 7, 0, 2, 3, 0, 0, 20, 2, 4, 0, 2, 1, 1, 2, 7, 15, 3, 0], "color": "#d4a6f7"}, {"label": "RUU EBET DIM", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 27, 11, 0, 3, 13, 4, 5, 5, 6, 0, 0, 5, 0, 0, 0], "color": "#b197fc"}, {"label": "fraksi DPR nuklir", "data": [0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 12, 0, 3, 3, 4, 3, 0, 0, 0, 3, 6, 0, 2, 3, 5, 13, 6, 0, 12, 0], "color": "#f06595"}, {"label": "BRIN nuklir SDM", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 5, 15, 2, 6, 11, 0, 32, 4], "color": "#74c0fc"}, {"label": "nuklir NZE 2060 Indonesia", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 6, 0, 3, 0, 5, 0, 3, 2, 5, 0, 2, 7, 4, 7, 4, 16, 0, 0], "color": "#a9e34b"}, {"label": "PLTU pensiun dini nuklir", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 10, 0, 0, 3, 3, 3, 0, 3, 2, 0, 0, 0, 1, 9, 15, 3, 0, 3, 0], "color": "#ffa94d"}, {"label": "nuklir energi hijau target iklim", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 16, 6, 0, 14, 11, 0], "color": "#63e6be"}, {"label": "nuklir IAEA keselamatan Indonesia", "data": [1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 2, 7, 3, 4, 3, 8, 6, 0, 0], "color": "#e599f7"}, {"label": "PLTU batubara nuklir transisi", "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 5, 0, 0, 0, 3, 3, 0, 0, 0, 5, 4, 0, 8, 4, 0], "color": "#ced4da"}, {"label": "pakar nuklir kebijakan DPR", "data": [0, 0, 0, 0, 0, 0, 0, 3, 0, 4, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 3, 6, 3, 0, 0, 7, 1, 0], "color": "#ff8787"}], "period_snapshot": {"all": {"labels": ["PLTN ketahanan energi nasional", "kedaulatan energi nuklir", "tarif listrik PLN nuklir", "SMR Indonesia reaktor", "limbah radioaktif nuklir Indonesia", "RUU EBET DIM", "fraksi DPR nuklir", "BRIN nuklir SDM", "nuklir NZE 2060 Indonesia", "PLTU pensiun dini nuklir", "nuklir energi hijau target iklim", "nuklir IAEA keselamatan Indonesia", "PLTU batubara nuklir transisi", "pakar nuklir kebijakan DPR"], "values": [120, 104, 93, 92, 90, 82, 80, 79, 69, 56, 48, 42, 35, 32]}, "jokowi1": {"labels": ["PLTN ketahanan energi nasional", "kedaulatan energi nuklir", "tarif listrik PLN nuklir", "SMR Indonesia reaktor", "limbah radioaktif nuklir Indonesia", "RUU EBET DIM", "fraksi DPR nuklir", "BRIN nuklir SDM", "nuklir NZE 2060 Indonesia", "PLTU pensiun dini nuklir", "nuklir energi hijau target iklim", "nuklir IAEA keselamatan Indonesia", "PLTU batubara nuklir transisi", "pakar nuklir kebijakan DPR"], "values": [0, 3, 10, 0, 2, 0, 2, 0, 0, 0, 0, 4, 0, 0]}, "jokowi2": {"labels": ["PLTN ketahanan energi nasional", "kedaulatan energi nuklir", "tarif listrik PLN nuklir", "SMR Indonesia reaktor", "limbah radioaktif nuklir Indonesia", "RUU EBET DIM", "fraksi DPR nuklir", "BRIN nuklir SDM", "nuklir NZE 2060 Indonesia", "PLTU pensiun dini nuklir", "nuklir energi hijau target iklim", "nuklir IAEA keselamatan Indonesia", "PLTU batubara nuklir transisi", "pakar nuklir kebijakan DPR"], "values": [12, 10, 20, 18, 59, 71, 39, 21, 31, 26, 1, 14, 14, 15]}, "prabowo": {"labels": ["PLTN ketahanan energi nasional", "kedaulatan energi nuklir", "tarif listrik PLN nuklir", "SMR Indonesia reaktor", "limbah radioaktif nuklir Indonesia", "RUU EBET DIM", "fraksi DPR nuklir", "BRIN nuklir SDM", "nuklir NZE 2060 Indonesia", "PLTU pensiun dini nuklir", "nuklir energi hijau target iklim", "nuklir IAEA keselamatan Indonesia", "PLTU batubara nuklir transisi", "pakar nuklir kebijakan DPR"], "values": [108, 91, 63, 74, 29, 11, 39, 58, 38, 30, 47, 24, 21, 17]}}};
+const MATRIX    = {"period_labels": ["Jokowi Periode 1", "Jokowi Periode 2", "Prabowo"], "rows": [{"actor": "Pemerintah", "pivot": true, "total": 48, "cells": [{"pro": 0, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "NETRAL", "total": 1}, {"pro": 20, "kontra": 3, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 24}, {"pro": 21, "kontra": 1, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 23}]}, {"actor": "Dadan Kusdiana", "pivot": false, "total": 39, "cells": [null, {"pro": 10, "kontra": 0, "netral": 3, "ambigu": 0, "dominant": "PRO", "total": 13}, {"pro": 24, "kontra": 0, "netral": 2, "ambigu": 0, "dominant": "PRO", "total": 26}]}, {"actor": "Syaiful Bakhri", "pivot": false, "total": 36, "cells": [null, {"pro": 14, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 14}, {"pro": 22, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 22}]}, {"actor": "Pemerintah Indonesia", "pivot": false, "total": 28, "cells": [null, {"pro": 5, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 6}, {"pro": 20, "kontra": 0, "netral": 2, "ambigu": 0, "dominant": "PRO", "total": 22}]}, {"actor": "Fabby Tumiwa", "pivot": false, "total": 25, "cells": [null, {"pro": 3, "kontra": 4, "netral": 2, "ambigu": 0, "dominant": "KONTRA", "total": 9}, {"pro": 1, "kontra": 13, "netral": 2, "ambigu": 0, "dominant": "KONTRA", "total": 16}]}, {"actor": "Eddy Soeparno", "pivot": false, "total": 23, "cells": [null, {"pro": 5, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 6}, {"pro": 14, "kontra": 0, "netral": 2, "ambigu": 1, "dominant": "PRO", "total": 17}]}, {"actor": "Airlangga Hartarto", "pivot": false, "total": 18, "cells": [null, {"pro": 1, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 1}, {"pro": 16, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 17}]}, {"actor": "BRIN", "pivot": false, "total": 18, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 16, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 16}]}, {"actor": "Edy Giri Rachman Putra", "pivot": false, "total": 18, "cells": [null, {"pro": 9, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 9}, {"pro": 9, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 9}]}, {"actor": "Kementerian ESDM", "pivot": false, "total": 18, "cells": [null, {"pro": 6, "kontra": 0, "netral": 0, "ambigu": 1, "dominant": "PRO", "total": 7}, {"pro": 9, "kontra": 1, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 11}]}, {"actor": "Vladimir Putin", "pivot": false, "total": 17, "cells": [null, {"pro": 4, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 4}, {"pro": 13, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 13}]}, {"actor": "Djarot Sulistio Wisnubroto", "pivot": false, "total": 15, "cells": [{"pro": 2, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 3}, {"pro": 6, "kontra": 3, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 10}, {"pro": 1, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 2}]}, {"actor": "Sugeng Suparwoto", "pivot": false, "total": 15, "cells": [null, {"pro": 5, "kontra": 0, "netral": 3, "ambigu": 0, "dominant": "PRO", "total": 8}, {"pro": 6, "kontra": 1, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 7}]}, {"actor": "Yudi Utomo Imardjoko", "pivot": false, "total": 13, "cells": [null, {"pro": 1, "kontra": 3, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 4}, {"pro": 0, "kontra": 6, "netral": 3, "ambigu": 0, "dominant": "KONTRA", "total": 9}]}, {"actor": "Suryantoro", "pivot": true, "total": 12, "cells": [{"pro": 1, "kontra": 1, "netral": 0, "ambigu": 0, "dominant": "AMBIGU", "total": 2}, {"pro": 9, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 10}, null]}, {"actor": "Anhar Riza Antariksawan", "pivot": false, "total": 11, "cells": [null, {"pro": 8, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 8}, {"pro": 3, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 3}]}, {"actor": "Darmawan Prasodjo", "pivot": false, "total": 11, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 7, "kontra": 0, "netral": 2, "ambigu": 0, "dominant": "PRO", "total": 9}]}, {"actor": "Gandung Pardiman", "pivot": true, "total": 11, "cells": [null, {"pro": 1, "kontra": 1, "netral": 1, "ambigu": 0, "dominant": "AMBIGU", "total": 3}, {"pro": 7, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 8}]}, {"actor": "Agus Puji Prasetyono", "pivot": false, "total": 10, "cells": [null, {"pro": 1, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 1}, {"pro": 9, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 9}]}, {"actor": "Laksana Tri Handoko", "pivot": false, "total": 10, "cells": [null, {"pro": 5, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 5}, {"pro": 5, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 5}]}, {"actor": "Topan Setiadipura", "pivot": false, "total": 10, "cells": [null, {"pro": 8, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 8}, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}]}, {"actor": "Pemerintah Jepang", "pivot": false, "total": 9, "cells": [null, {"pro": 4, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 4}, {"pro": 5, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 5}]}, {"actor": "Satya Widya Yudha", "pivot": true, "total": 9, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 1, "dominant": "PRO", "total": 3}, {"pro": 2, "kontra": 0, "netral": 4, "ambigu": 0, "dominant": "NETRAL", "total": 6}]}, {"actor": "Arcandra Tahar", "pivot": false, "total": 8, "cells": [{"pro": 0, "kontra": 5, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 5}, {"pro": 0, "kontra": 2, "netral": 1, "ambigu": 0, "dominant": "KONTRA", "total": 3}, null]}, {"actor": "Ahmad Subhan Hafiz", "pivot": false, "total": 8, "cells": [null, {"pro": 0, "kontra": 2, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 2}, {"pro": 0, "kontra": 6, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 6}]}, {"actor": "Anna Belokoneva", "pivot": false, "total": 8, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 6, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 6}]}, {"actor": "Dewan Energi Nasional", "pivot": false, "total": 8, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 5, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 6}]}, {"actor": "Rohadi Awaludin", "pivot": false, "total": 8, "cells": [null, {"pro": 5, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 5}, {"pro": 2, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 3}]}, {"actor": "Marthin Hadiwinata", "pivot": false, "total": 7, "cells": [null, {"pro": 0, "kontra": 6, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 6}, {"pro": 0, "kontra": 1, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 1}]}, {"actor": "Indonesia", "pivot": false, "total": 6, "cells": [{"pro": 2, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 3}, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 1, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 1}]}, {"actor": "Prabowo Subianto", "pivot": false, "total": 6, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 4, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 4}]}, {"actor": "Sugeng Sumbarjo", "pivot": false, "total": 6, "cells": [null, {"pro": 4, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 5}, {"pro": 1, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 1}]}, {"actor": "Bhima Yudhistira", "pivot": true, "total": 5, "cells": [null, {"pro": 0, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "NETRAL", "total": 1}, {"pro": 0, "kontra": 3, "netral": 1, "ambigu": 0, "dominant": "KONTRA", "total": 4}]}, {"actor": "Greenpeace", "pivot": false, "total": 5, "cells": [null, {"pro": 0, "kontra": 2, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 2}, {"pro": 0, "kontra": 3, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 3}]}, {"actor": "Fahmy Radhi", "pivot": false, "total": 4, "cells": [{"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 1, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "PRO", "total": 2}, null]}, {"actor": "Bob S Effendi", "pivot": true, "total": 4, "cells": [null, {"pro": 1, "kontra": 0, "netral": 2, "ambigu": 0, "dominant": "NETRAL", "total": 3}, {"pro": 1, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 1}]}, {"actor": "Edwin Nugraha Putra", "pivot": false, "total": 4, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 1, "dominant": "PRO", "total": 3}, {"pro": 1, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 1}]}, {"actor": "IESR", "pivot": true, "total": 4, "cells": [null, {"pro": 0, "kontra": 3, "netral": 0, "ambigu": 0, "dominant": "KONTRA", "total": 3}, {"pro": 1, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 1}]}, {"actor": "Luhut Binsar Pandjaitan", "pivot": true, "total": 4, "cells": [null, {"pro": 0, "kontra": 0, "netral": 1, "ambigu": 0, "dominant": "NETRAL", "total": 1}, {"pro": 3, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 3}]}, {"actor": "Maman Kartaman Ajiriyanto", "pivot": false, "total": 4, "cells": [null, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}, {"pro": 2, "kontra": 0, "netral": 0, "ambigu": 0, "dominant": "PRO", "total": 2}]}]};
+
+/* ── Tema per periode charts (static — always show all 3 periods) ── */
+(function() {
+  const td = TEMA_DATA;
+  const TICK = { color: "#c9d1d9" };
+
+  function makeDatasets(mode) {
+    return td.datasets.map(function(ds) {
+      return {
+        label: ds.label,
+        data: mode === 'pct' ? ds.data_pct : ds.data_abs,
+        backgroundColor: ds.color,
+        borderWidth: 0,
+      };
+    });
+  }
+
+  const sharedOpts = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { stacked: true, grid: { display: false },
+            ticks: { ...TICK, maxRotation: 20, font: { size: 11 } } },
+      y: { stacked: true, grid: { color: "#2e3250" },
+            ticks: { ...TICK, font: { size: 11 } } },
+    },
+  };
+
+  window._temaChartPct = new Chart(document.getElementById('chartTemaPct'), {
+    type: 'bar',
+    data: { labels: td.period_labels, datasets: makeDatasets('pct') },
+    options: sharedOpts,
+  });
+  window._temaChartAbs = new Chart(document.getElementById('chartTemaAbs'), {
+    type: 'bar',
+    data: { labels: td.period_labels, datasets: makeDatasets('abs') },
+    options: sharedOpts,
+  });
+
+  /* Legend */
+  var leg = document.getElementById('temaLegend');
+  td.datasets.forEach(function(ds) {
+    var item = document.createElement('span');
+    item.style.cssText = 'display:flex;align-items:center;gap:5px;';
+    item.innerHTML = '<span style="width:10px;height:10px;border-radius:2px;background:' + ds.color + ';flex-shrink:0;"></span>' + ds.label;
+    leg.appendChild(item);
+  });
+
+  /* Init insight — default 'all' */
+  document.getElementById('temaInsight').innerHTML = td.insights['all'];
+})();
 
 /* ── Chart defaults (dark theme) ── */
 Chart.defaults.color = "#c9d1d9";
@@ -465,9 +669,187 @@ function updatePeriod(pid) {
   charts.kontra.data.labels               = d.kontra.labels;
   charts.kontra.data.datasets[0].data     = d.kontra.values;
   charts.kontra.update();
+
+  /* Tema insight box */
+  var insightEl = document.getElementById('temaInsight');
+  if (insightEl && TEMA_DATA.insights[pid]) {
+    insightEl.innerHTML = TEMA_DATA.insights[pid];
+  }
 }
 
 /* ── Bootstrap ── */
+makeCharts();
+updatePeriod('all');
+
+const STREAM_COLORS = [
+  "#4dabf7","#69db7c","#ff6b6b","#ffd43b","#d4a6f7","#b197fc",
+  "#f06595","#74c0fc","#a9e34b","#ffa94d","#63e6be","#e599f7",
+  "#ced4da","#ff8787"
+];
+
+/* ══════════════════════════════════════════════════════════
+   8A — CONCEPT EVOLUTION TIMELINE (stacked area)
+══════════════════════════════════════════════════════════ */
+var areaChart = null;
+var _areaMode = 'stacked';
+
+function _buildAreaDatasets(mode) {
+  return EVOLUTION.datasets.map(function(ds, i) {
+    var rawData = ds.data;
+    var finalData = rawData;
+    if (mode === 'pct') {
+      var totals = EVOLUTION.quarters.map(function(q, qi) {
+        return EVOLUTION.datasets.reduce(function(acc, d) { return acc + d.data[qi]; }, 0);
+      });
+      finalData = rawData.map(function(v, qi) {
+        return totals[qi] === 0 ? 0 : parseFloat((v / totals[qi] * 100).toFixed(1));
+      });
+    }
+    return {
+      label: ds.label,
+      data: finalData,
+      backgroundColor: ds.color + 'bb',
+      borderColor: ds.color,
+      borderWidth: 1.5,
+      fill: true,
+      tension: 0.38,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+    };
+  });
+}
+
+(function initArea() {
+  var ctx = document.getElementById('chartArea').getContext('2d');
+  areaChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: EVOLUTION.quarters, datasets: _buildAreaDatasets('stacked') },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#16213ef0",
+          titleColor: "#e8e8e8", bodyColor: "#c9d1d9",
+          borderColor: "#2e3250", borderWidth: 1,
+          callbacks: {
+            label: function(ctx) {
+              return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y +
+                (_areaMode === 'pct' ? '%' : ' pernyataan');
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: "#c9d1d9", maxRotation: 45,
+                   autoSkip: true, maxTicksLimit: 20, font: { size: 10 } },
+          grid: { color: "#2e325050" },
+        },
+        y: {
+          stacked: true,
+          ticks: { color: "#c9d1d9" },
+          grid: { color: "#2e325080" },
+          title: { display: true, text: 'Jumlah Pernyataan',
+                    color: "#c9d1d9", font: { size: 11 } },
+        },
+      },
+    },
+  });
+
+  /* Build keyword legend */
+  var leg = document.getElementById('areaLegend');
+  EVOLUTION.datasets.forEach(function(ds) {
+    var span = document.createElement('span');
+    span.style.cssText = 'display:flex;align-items:center;gap:5px;';
+    span.innerHTML =
+      '<span style="width:11px;height:11px;border-radius:2px;flex-shrink:0;background:' +
+      ds.color + ';"></span><span>' + ds.label + '</span>';
+    leg.appendChild(span);
+  });
+})();
+
+function setAreaMode(mode, btn) {
+  _areaMode = mode;
+  document.querySelectorAll('.adv-toggle').forEach(function(b) {
+    b.style.borderColor  = "#2e3250";
+    b.style.background   = "#16213e";
+    b.style.color        = "#c9d1d9";
+  });
+  btn.style.borderColor = "#b197fc";
+  btn.style.background  = "#0f0f1a";
+  btn.style.color       = "#e8e8e8";
+  areaChart.data.datasets = _buildAreaDatasets(mode);
+  areaChart.options.scales.y.title.text =
+    mode === 'pct' ? 'Proporsi (%)' : 'Jumlah Pernyataan';
+  areaChart.update();
+}
+
+/* ══════════════════════════════════════════════════════════
+   8B — POSITION SHIFT MATRIX
+══════════════════════════════════════════════════════════ */
+var _allMatrixRows = MATRIX.rows;
+
+function _posCell(cell) {
+  if (!cell) {
+    return '<td style="text-align:center;">' +
+      '<span style="display:inline-flex;align-items:center;justify-content:center;' +
+      'min-width:58px;padding:4px 6px;font-size:0.74rem;color:#2e3250;">—</span>' +
+      '</td>';
+  }
+  var pos = cell.dominant;
+  var bg  = { PRO:"#69db7c", KONTRA:"#ff6b6b", NETRAL:"#ced4da", AMBIGU:"#ffd43b" }[pos] || "#ced4da";
+  var fg  = (pos === 'KONTRA') ? '#fff' : '#000';
+  var tip = 'PRO:' + cell.pro + ' | KONTRA:' + cell.kontra + ' | NETRAL:' + cell.netral;
+  return '<td style="text-align:center;">' +
+    '<span style="display:inline-flex;align-items:center;justify-content:center;' +
+    'border-radius:6px;min-width:58px;padding:4px 7px;font-size:0.74rem;' +
+    'font-weight:700;background:' + bg + ';color:' + fg + ';" title="' + tip + '">' +
+    pos + ' <small>(' + cell.total + ')</small></span></td>';
+}
+
+function renderMatrix(rows) {
+  var tbody = document.getElementById('matrixBody');
+  tbody.innerHTML = '';
+  rows.forEach(function(row) {
+    var pivotBadge = row.pivot
+      ? '<span style="display:inline-block;margin-left:5px;font-size:0.64rem;' +
+        'background:#ffd43b;color:#000;border-radius:4px;' +
+        'padding:1px 5px;font-weight:700;">PIVOT</span>'
+      : '';
+    var nameStyle = row.pivot
+      ? 'color:#ffd43b;font-weight:600;'
+      : 'color:#e8e8e8;';
+    var tr =
+      '<tr style="border-bottom:1px solid #2e3250;">' +
+      '<td style="padding:6px 10px;max-width:190px;overflow:hidden;' +
+      'text-overflow:ellipsis;white-space:nowrap;' + nameStyle +
+      '" title="' + row.actor + '">' + row.actor + pivotBadge + '</td>' +
+      _posCell(row.cells[0]) +
+      _posCell(row.cells[1]) +
+      _posCell(row.cells[2]) +
+      '<td style="text-align:center;color:#c9d1d9;font-size:0.75rem;padding:6px 10px;">' +
+      row.total + '</td></tr>';
+    tbody.insertAdjacentHTML('beforeend', tr);
+  });
+  document.getElementById('matrixCount').textContent =
+    'Menampilkan ' + rows.length + ' dari ' + _allMatrixRows.length + ' aktor';
+}
+
+function filterMatrix(query) {
+  var pivotOnly = document.getElementById('pivotOnly').checked;
+  var q = (query || '').toLowerCase().trim();
+  var filtered = _allMatrixRows.filter(function(r) {
+    return (!q || r.actor.toLowerCase().includes(q)) && (!pivotOnly || r.pivot);
+  });
+  renderMatrix(filtered);
+}
+
+renderMatrix(_allMatrixRows);
+
+/* ── Bootstrap all charts ── */
 makeCharts();
 updatePeriod('all');
 </script>

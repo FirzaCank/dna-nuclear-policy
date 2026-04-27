@@ -264,9 +264,18 @@ def compute_period_charts(flat_slice, sent_all):
 
     # ── Sentiment donut ────────────────────────────────────────────────────
     if not sent_slice.empty and "sentiment_label" in sent_slice.columns:
-        sc = sent_slice["sentiment_label"].value_counts()
-        sent_data = dict(labels=sc.index.tolist(),
-                         values=[int(v) for v in sc.values.tolist()])
+        # Extract sentiment part only (e.g., "POSITIVE" from "PRO_POSITIVE")
+        sent_slice_copy = sent_slice.copy()
+        sent_slice_copy["sentiment_type"] = sent_slice_copy["sentiment_label"].str.split("_").str[-1]
+        sc = sent_slice_copy["sentiment_type"].value_counts()
+        # Order: POSITIVE, NEGATIVE, NEUTRAL
+        ordered_labels = []
+        ordered_values = []
+        for sent_type in ["POSITIVE", "NEGATIVE", "NEUTRAL"]:
+            if sent_type in sc.index:
+                ordered_labels.append(sent_type)
+                ordered_values.append(int(sc[sent_type]))
+        sent_data = dict(labels=ordered_labels, values=ordered_values)
     else:
         sent_data = dict(labels=[], values=[])
 
@@ -332,10 +341,16 @@ def compute_period_charts(flat_slice, sent_all):
     else:
         var_data = dict(labels=[], values=[])
 
+    # ── Tema per periode (untuk chart perbandingan lintas periode) ────────────
+    # Dihitung di luar fungsi ini (butuh semua periode sekaligus),
+    # diisi placeholder kosong agar struktur konsisten.
+    tema_by_period: dict = {}
+
     return dict(
         stats=stats, pos=pos_data, actors=actors_data,
         sent=sent_data, cross=cross_data, trend=trend_data,
         actor_type=actor_type_data, kontra=kontra_data, var_chart=var_data,
+        tema_by_period=tema_by_period,
     )
 
 
@@ -558,6 +573,68 @@ def _meta_html(pid):
 </div>"""
 
 
+# ── Compute tema_by_period (cross-period theme comparison) ────────────────────
+SHORT_LABELS = {
+    "Keamanan Nasional & Kedaulatan"  : "Keamanan & Kedaulatan",
+    "Intervensi & Pembiayaan"         : "Intervensi & Pembiayaan",
+    "Periferalisasi & Hak Masyarakat" : "Hak Masyarakat",
+    "Dinamika Pembahasan DIM"         : "Dinamika DIM",
+    "Ideologi & Integritas Data"      : "Ideologi & Data",
+    "Transisi Energi & NZE"           : "Transisi Energi",
+    "Interaksi Pemangku Kepentingan"  : "Interaksi Pemangku",
+}
+TEMA_COLORS = [
+    "#D85A30",  # coral   — Keamanan & Kedaulatan (highlight)
+    "#4dabf7",  # blue    — Intervensi & Pembiayaan
+    "#69db7c",  # green   — Hak Masyarakat
+    "#ffd43b",  # amber   — Dinamika DIM
+    "#b197fc",  # purple  — Ideologi & Data
+    "#ced4da",  # gray    — Transisi Energi
+    "#ff6b6b",  # red     — Interaksi Pemangku
+]
+INSIGHTS_TEMA = {
+    "all":     ("Keseluruhan: Keamanan &amp; Kedaulatan adalah tema terbesar (25.1%). "
+                "Intervensi &amp; Pembiayaan dan Ideologi &amp; Data mengikuti."),
+    "jokowi1": ("Jokowi 1 (73 pernyataan — data terbatas): Tema dominan adalah "
+                "<b style='color:#4dabf7'>Intervensi &amp; Pembiayaan (37%)</b>, bukan Kedaulatan (33%). "
+                "Wacana nuklir masih berfokus pada biaya dan investasi."),
+    "jokowi2": ("Jokowi 2: Distribusi relatif merata (~14–23%). "
+                "Dinamika DIM (23%) memimpin — nuklir dalam perdebatan legislatif."),
+    "prabowo": ("<b style='color:#D85A30'>Era Prabowo: Keamanan &amp; Kedaulatan melonjak ke 31%</b> — "
+                "bukti paling kuat untuk klaim reframing kedaulatan. "
+                "Ideologi &amp; Data ikut naik (18%), Dinamika DIM turun drastis (5%)."),
+}
+
+_ordered_pids  = ["jokowi1", "jokowi2", "prabowo"]
+_period_labels = [PERIOD_DEFS[p][0] for p in _ordered_pids]
+_all_themes    = list(SHORT_LABELS.keys())
+_short_themes  = list(SHORT_LABELS.values())
+
+_tema_abs    = {}
+_tema_totals = {}
+for pid in _ordered_pids:
+    label, pstart, pend = PERIOD_DEFS[pid]
+    flat_p = _slice(flat_df, pstart, pend)
+    vc = flat_p["variable"].value_counts()
+    _tema_abs[pid]    = {t: int(vc.get(t, 0)) for t in _all_themes}
+    _tema_totals[pid] = max(int(vc.sum()), 1)
+
+_tema_datasets = []
+for i, theme in enumerate(_all_themes):
+    _tema_datasets.append({
+        "label":    _short_themes[i],
+        "data_abs": [_tema_abs[p][theme] for p in _ordered_pids],
+        "data_pct": [round(_tema_abs[p][theme] / _tema_totals[p] * 100, 1) for p in _ordered_pids],
+        "color":    TEMA_COLORS[i],
+    })
+
+TEMA_DATA_JSON = json.dumps({
+    "period_labels": _period_labels,
+    "period_totals": [_tema_totals[p] for p in _ordered_pids],
+    "datasets":      _tema_datasets,
+    "insights":      INSIGHTS_TEMA,
+}, ensure_ascii=False)
+
 # ── Build combined network HTML (all periods, shown/hidden by JS) ──────────────
 network_html_parts = ""
 for pid in PERIOD_ORDER:
@@ -571,11 +648,180 @@ for pid in PERIOD_ORDER:
 # ── Serialize all period data to JSON for JS ───────────────────────────────────
 all_data_json = json.dumps(all_periods_data, ensure_ascii=False)
 
-# Colours exported to JS
-SENT_COLORS_JS = json.dumps([C["pro"], C["kontra"], C["netral"], C["ambigu"]])
+# ══════════════════════════════════════════════════════════════════════════════
+# ADVANCED ANALYTICS — data computation (Charts 8a / 8b / 8c)
+# ══════════════════════════════════════════════════════════════════════════════
+import re as _re
+
+# ── Colour ramp for keyword streams (14 distinct WCAG-safe colours) ───────────
+STREAM_COLORS = [
+    "#4dabf7", "#69db7c", "#ff6b6b", "#ffd43b", "#d4a6f7", "#b197fc",
+    "#f06595", "#74c0fc", "#a9e34b", "#ffa94d", "#63e6be", "#e599f7",
+    "#ced4da", "#ff8787",
+]
+TOP_KEYWORDS   = 14   # keyword streams in area chart
+TOP_ACTORS_MTX = 40   # rows in position-shift matrix
+MIN_PERIODS_MTX = 2   # actor must appear in ≥ N periods
+MIN_INST_DIV   = 5    # min institution statements for diverging bar
+
+# ── Dominant position helper ───────────────────────────────────────────────────
+def _dom(pro, kon, net, amb=0):
+    if pro == kon and pro > 0:
+        return "AMBIGU"
+    best = max(pro, kon, net, amb)
+    if best == 0:
+        return "NETRAL"
+    if best == pro:   return "PRO"
+    if best == kon:   return "KONTRA"
+    return "NETRAL"
+
+# ── Lightweight institution extractor (falls back to heuristics) ───────────────
+def _inst(actor, actor_type, actor_role):
+    try:
+        return get_institution(actor, actor_type, actor_role) or actor
+    except Exception:
+        pass
+    role  = str(actor_role  or "").strip()
+    atype = str(actor_type  or "").strip().upper()
+    if atype == "INSTITUSI":
+        return actor
+    m = _re.search(r'\(([^)]+)\)', role)
+    if m:
+        return m.group(1).strip()
+    m = _re.search(
+        r'\b(PLN|BRIN|DPR|MPR|BPPT|ESDM|KLHK|BAPETEN|IAEA|KEN|WALHI'
+        r'|Gerindra|PDI-P|Golkar|PKB|PKS|Demokrat|Nasdem|PPP|Hanura'
+        r'|Kementerian \w+|Fraksi \w+)\b',
+        role, _re.IGNORECASE,
+    )
+    if m:
+        return m.group(1).strip()
+    words = role.split()
+    return " ".join(words[-2:]) if len(words) >= 2 else actor
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 8A — CONCEPT EVOLUTION TIMELINE (stacked area per quarter)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+print("[ADV 8A] Building concept evolution timeline…")
+
+flat_df["quarter"] = flat_df["date_parsed"].dt.to_period("Q").astype(str)
+
+top_kw = (
+    flat_df.groupby("keyword")["actor"]
+    .count()
+    .nlargest(TOP_KEYWORDS)
+    .index.tolist()
+)
+
+kw_df    = flat_df[flat_df["keyword"].isin(top_kw)].copy()
+pivot_kw = (
+    kw_df.groupby(["quarter", "keyword"])["actor"]
+    .count()
+    .unstack(fill_value=0)
+    .reindex(columns=top_kw, fill_value=0)
+)
+evo_quarters = pivot_kw.index.tolist()
+
+def _kw_for_period(pid_):
+    _, ps, pe = PERIOD_DEFS[pid_]
+    sl = _slice(flat_df, ps, pe)
+    return (sl[sl["keyword"].isin(top_kw)]
+            .groupby("keyword")["actor"]
+            .count()
+            .reindex(top_kw, fill_value=0)
+            .to_dict())
+
+evo_datasets = [
+    {
+        "label": kw,
+        "data":  [int(pivot_kw.loc[q, kw]) for q in evo_quarters],
+        "color": STREAM_COLORS[i % len(STREAM_COLORS)],
+    }
+    for i, kw in enumerate(top_kw)
+]
+
+evo_period_snapshot = {
+    pid_: {
+        "labels": top_kw,
+        "values": [int(_kw_for_period(pid_).get(k, 0)) for k in top_kw],
+    }
+    for pid_ in PERIOD_ORDER
+}
+
+EVOLUTION_JSON = json.dumps(
+    {"quarters": evo_quarters, "datasets": evo_datasets,
+     "period_snapshot": evo_period_snapshot},
+    ensure_ascii=False,
+)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 8B — POSITION SHIFT MATRIX (actors × presidential periods)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+print("[ADV 8B] Building position shift matrix…")
+
+MATRIX_PERIODS = ["jokowi1", "jokowi2", "prabowo"]
+MATRIX_PERIOD_LABELS = [PERIOD_DEFS[p][0] for p in MATRIX_PERIODS]
+
+actor_period_pos = {}
+actor_total_stmts = {}
+
+for pid_ in MATRIX_PERIODS:
+    _, ps, pe = PERIOD_DEFS[pid_]
+    sl = _slice(flat_df, ps, pe)
+    if sl.empty:
+        continue
+    for actor_, grp in sl.groupby("actor"):
+        vc = grp["position"].value_counts()
+        pro_ = int(vc.get("PRO",    0))
+        kon_ = int(vc.get("KONTRA", 0))
+        net_ = int(vc.get("NETRAL", 0))
+        amb_ = int(vc.get("AMBIGU", 0))
+        if actor_ not in actor_period_pos:
+            actor_period_pos[actor_] = {}
+        actor_period_pos[actor_][pid_] = {
+            "pro": pro_, "kontra": kon_, "netral": net_, "ambigu": amb_,
+            "dominant": _dom(pro_, kon_, net_, amb_),
+            "total": pro_ + kon_ + net_ + amb_,
+        }
+        actor_total_stmts[actor_] = actor_total_stmts.get(actor_, 0) + pro_ + kon_ + net_ + amb_
+
+qualified = sorted(
+    [a for a, pm in actor_period_pos.items() if len(pm) >= MIN_PERIODS_MTX],
+    key=lambda a: actor_total_stmts.get(a, 0), reverse=True,
+)[:TOP_ACTORS_MTX]
+
+def _is_pivot(actor_):
+    pm = actor_period_pos.get(actor_, {})
+    positions = [pm[p]["dominant"] for p in MATRIX_PERIODS if p in pm]
+    return len(set(positions)) > 1 and len(positions) >= 2
+
+matrix_rows_data = [
+    {
+        "actor":  actor_,
+        "pivot":  _is_pivot(actor_),
+        "total":  actor_total_stmts.get(actor_, 0),
+        "cells":  [
+            actor_period_pos[actor_].get(pid_)
+            for pid_ in MATRIX_PERIODS
+        ],
+    }
+    for actor_ in qualified
+]
+
+MATRIX_JSON = json.dumps(
+    {"period_labels": MATRIX_PERIOD_LABELS, "rows": matrix_rows_data},
+    ensure_ascii=False,
+)
+
+n_pivots = sum(1 for r in matrix_rows_data if r["pivot"])
+print(f"  Matrix: {len(matrix_rows_data)} actors, {n_pivots} pivots")
+
+# Colours exported to JS — for sentiment (POSITIVE=green, NEGATIVE=red, NEUTRAL=gray)
+SENT_COLORS_JS = json.dumps([C["pro"], C["kontra"], C["netral"]])  # green, red, gray
 ACTOR_TYPE_COLORS_JS = json.dumps([
     C["accent"], C["info"], C["ambigu"], C["pro"], C["kontra"], C["netral"]
 ])
+# Tema by period already serialized above as TEMA_DATA_JSON
 
 # ── Build HTML ─────────────────────────────────────────────────────────────────
 HTML = f"""<!DOCTYPE html>
@@ -714,6 +960,38 @@ canvas{{max-height:320px}}
     {network_html_parts}
   </div>
 
+  <!-- ── Distribusi Tema per Periode ── -->
+  <div class="section">
+    <h2>Distribusi Tema Wacana per Periode Pemerintahan</h2>
+    <p style="font-size:0.82rem;color:{C['txt2']};margin-bottom:14px;">
+      Chart ini bersifat statis — menampilkan perbandingan ketiga periode sekaligus.
+      Highlight: <b style="color:#D85A30">Keamanan &amp; Kedaulatan</b>.
+    </p>
+    <div class="chart-row">
+      <div>
+        <div style="font-size:0.8rem;color:{C['txt2']};margin-bottom:6px;" id="temaChartLabel">Proporsi tema (%)</div>
+        <div style="position:relative;height:300px;">
+          <canvas id="chartTemaPct" role="img"
+            aria-label="Stacked bar chart proporsi tema wacana nuklir per periode pemerintahan"></canvas>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem;color:{C['txt2']};margin-bottom:6px;">Jumlah pernyataan (n)</div>
+        <div style="position:relative;height:300px;">
+          <canvas id="chartTemaAbs" role="img"
+            aria-label="Stacked bar chart jumlah pernyataan tema wacana nuklir per periode pemerintahan"></canvas>
+        </div>
+      </div>
+    </div>
+    <!-- Legend -->
+    <div id="temaLegend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:0.78rem;color:{C['txt2']};"></div>
+    <!-- Insight box — berubah sesuai period dropdown -->
+    <div id="temaInsight"
+      style="margin-top:14px;padding:10px 14px;background:{C['card2']};
+             border-left:3px solid #D85A30;border-radius:8px;
+             font-size:0.82rem;color:{C['txt2']};line-height:1.6;"></div>
+  </div>
+
   <!-- ── Charts row 1 ── -->
   <div class="chart-row">
     <div class="section">
@@ -756,6 +1034,122 @@ canvas{{max-height:320px}}
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════
+       ADVANCED ANALYTICS — Concept Evolution, Shift Matrix, Diverging
+  ══════════════════════════════════════════════════════ -->
+
+  <!-- ── Concept Evolution Timeline ───────────────────────────────── -->
+  <div class="section">
+    <h2>Concept Evolution Timeline</h2>
+    <p style="font-size:0.8rem;color:{C['txt2']};margin-bottom:12px;">
+      Volume pernyataan tiap kluster keyword per kuartal — stacked area chart.
+      Pergeseran dominasi konsep terlihat dari bentuk 'arus'. Chart ini selalu
+      menampilkan keseluruhan timeline; gunakan toggle untuk melihat proporsi relatif.
+    </p>
+
+    <!-- Mode toggle: stacked vs 100% -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;" id="areaToggle">
+      <button class="adv-toggle active" data-mode="stacked"
+        onclick="setAreaMode('stacked',this)"
+        style="padding:5px 14px;border-radius:20px;font-size:0.78rem;cursor:pointer;
+               border:1.5px solid {C['accent']};background:{C['bg']};color:{C['txt1']};
+               font-family:inherit;transition:all .15s;">
+        Stacked (Absolut)
+      </button>
+      <button class="adv-toggle" data-mode="pct"
+        onclick="setAreaMode('pct',this)"
+        style="padding:5px 14px;border-radius:20px;font-size:0.78rem;cursor:pointer;
+               border:1.5px solid {C['border']};background:{C['card2']};color:{C['txt2']};
+               font-family:inherit;transition:all .15s;">
+        100% Normalised
+      </button>
+    </div>
+
+    <div style="position:relative;height:360px;">
+      <canvas id="chartArea" role="img"
+        aria-label="Stacked area chart volume konsep nuklir per kuartal"></canvas>
+    </div>
+
+    <!-- Keyword legend (dynamic) -->
+    <div id="areaLegend"
+      style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;
+             font-size:0.73rem;color:{C['txt2']};"></div>
+
+    <div style="margin-top:12px;padding:10px 14px;background:{C['card2']};
+                border-left:3px solid {C['accent']};border-radius:8px;
+                font-size:0.81rem;color:{C['txt2']};line-height:1.65;">
+      <b>Cara baca:</b> tiap pita warna = satu kluster keyword. Pita melebar → dominasi
+      meningkat. Persilangan antar pita = <em>discourse shift</em>. Mode normalised memperlihatkan
+      pergeseran proporsi meski total artikel berbeda antar kuartal.
+    </div>
+  </div>
+
+  <!-- ── Position Shift Matrix ─────────────────────────────────────── -->
+  <div class="section">
+    <h2>Position Shift Matrix</h2>
+    <p style="font-size:0.8rem;color:{C['txt2']};margin-bottom:12px;">
+      Posisi dominan tiap aktor lintas rezim pemerintahan. Aktor bertanda
+      <span style="background:{C['ambigu']};color:#000;padding:1px 6px;border-radius:4px;
+                  font-size:0.72rem;font-weight:700;">PIVOT</span>
+      mengubah posisi antar periode — indikasi <em>political pivot</em> &amp; oportunisme wacana.
+      Terhubung dengan teori advocacy coalition.
+    </p>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:0.78rem;">
+      <span style="display:flex;align-items:center;gap:6px;color:{C['txt2']};">
+        <span style="width:14px;height:14px;border-radius:3px;background:{C['pro']};display:inline-block;"></span>PRO
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;color:{C['txt2']};">
+        <span style="width:14px;height:14px;border-radius:3px;background:{C['kontra']};display:inline-block;"></span>KONTRA
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;color:{C['txt2']};">
+        <span style="width:14px;height:14px;border-radius:3px;background:{C['netral']};display:inline-block;"></span>NETRAL
+      </span>
+      <span style="display:flex;align-items:center;gap:6px;color:{C['txt2']};">
+        <span style="width:14px;height:14px;border-radius:3px;background:{C['ambigu']};display:inline-block;"></span>AMBIGU
+      </span>
+      <span style="color:{C['txt2']};font-size:0.74rem;">— angka dalam sel = jumlah pernyataan periode tersebut</span>
+    </div>
+
+    <!-- Search + Pivot filter -->
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+      <input id="mtxSearch" type="text" placeholder="🔍 Cari aktor…"
+        oninput="filterMatrix(this.value)"
+        style="background:{C['card2']};color:{C['txt1']};
+               border:1.5px solid {C['border']};border-radius:8px;
+               padding:7px 12px;font-size:0.84rem;font-family:inherit;
+               width:240px;outline-offset:2px;">
+      <label style="font-size:0.8rem;color:{C['txt2']};display:flex;
+                    align-items:center;gap:7px;cursor:pointer;">
+        <input type="checkbox" id="pivotOnly"
+          onchange="filterMatrix(document.getElementById('mtxSearch').value)"
+          style="accent-color:{C['ambigu']};width:15px;height:15px;">
+        Hanya PIVOT
+      </label>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table id="matrixTable"
+        style="border-collapse:collapse;width:100%;font-size:0.78rem;">
+        <thead>
+          <tr style="border-bottom:2px solid {C['border']};">
+            <th style="padding:8px 12px;text-align:left;color:{C['txt2']};
+                       min-width:170px;font-weight:600;">Aktor</th>
+            <th style="padding:8px 12px;text-align:center;color:{C['txt2']};font-weight:600;">Jokowi 1</th>
+            <th style="padding:8px 12px;text-align:center;color:{C['txt2']};font-weight:600;">Jokowi 2</th>
+            <th style="padding:8px 12px;text-align:center;color:{C['txt2']};font-weight:600;">Prabowo</th>
+            <th style="padding:8px 12px;text-align:center;color:{C['txt2']};
+                       font-weight:600;min-width:55px;">Total</th>
+          </tr>
+        </thead>
+        <tbody id="matrixBody"><!-- filled by JS --></tbody>
+      </table>
+    </div>
+    <div id="matrixCount" style="font-size:0.76rem;color:{C['txt2']};margin-top:8px;"></div>
+  </div>
+
+
 </div><!-- /.container -->
 
 <!-- ═══════════════════ JavaScript ═══════════════════ -->
@@ -764,6 +1158,62 @@ canvas{{max-height:320px}}
 const ALL_DATA = {all_data_json};
 const SENT_COLORS = {SENT_COLORS_JS};
 const ACTOR_TYPE_COLORS = {ACTOR_TYPE_COLORS_JS};
+const TEMA_DATA = {TEMA_DATA_JSON};
+
+/* ── Advanced analytics data (8A / 8B) ── */
+const EVOLUTION = {EVOLUTION_JSON};
+const MATRIX    = {MATRIX_JSON};
+
+/* ── Tema per periode charts (static — always show all 3 periods) ── */
+(function() {{
+  const td = TEMA_DATA;
+  const TICK = {{ color: "{C['txt2']}" }};
+
+  function makeDatasets(mode) {{
+    return td.datasets.map(function(ds) {{
+      return {{
+        label: ds.label,
+        data: mode === 'pct' ? ds.data_pct : ds.data_abs,
+        backgroundColor: ds.color,
+        borderWidth: 0,
+      }};
+    }});
+  }}
+
+  const sharedOpts = {{
+    responsive: true, maintainAspectRatio: false,
+    plugins: {{ legend: {{ display: false }} }},
+    scales: {{
+      x: {{ stacked: true, grid: {{ display: false }},
+            ticks: {{ ...TICK, maxRotation: 20, font: {{ size: 11 }} }} }},
+      y: {{ stacked: true, grid: {{ color: "{C['border']}" }},
+            ticks: {{ ...TICK, font: {{ size: 11 }} }} }},
+    }},
+  }};
+
+  window._temaChartPct = new Chart(document.getElementById('chartTemaPct'), {{
+    type: 'bar',
+    data: {{ labels: td.period_labels, datasets: makeDatasets('pct') }},
+    options: sharedOpts,
+  }});
+  window._temaChartAbs = new Chart(document.getElementById('chartTemaAbs'), {{
+    type: 'bar',
+    data: {{ labels: td.period_labels, datasets: makeDatasets('abs') }},
+    options: sharedOpts,
+  }});
+
+  /* Legend */
+  var leg = document.getElementById('temaLegend');
+  td.datasets.forEach(function(ds) {{
+    var item = document.createElement('span');
+    item.style.cssText = 'display:flex;align-items:center;gap:5px;';
+    item.innerHTML = '<span style="width:10px;height:10px;border-radius:2px;background:' + ds.color + ';flex-shrink:0;"></span>' + ds.label;
+    leg.appendChild(item);
+  }});
+
+  /* Init insight — default 'all' */
+  document.getElementById('temaInsight').innerHTML = td.insights['all'];
+}})();
 
 /* ── Chart defaults (dark theme) ── */
 Chart.defaults.color = "{C['txt2']}";
@@ -937,9 +1387,187 @@ function updatePeriod(pid) {{
   charts.kontra.data.labels               = d.kontra.labels;
   charts.kontra.data.datasets[0].data     = d.kontra.values;
   charts.kontra.update();
+
+  /* Tema insight box */
+  var insightEl = document.getElementById('temaInsight');
+  if (insightEl && TEMA_DATA.insights[pid]) {{
+    insightEl.innerHTML = TEMA_DATA.insights[pid];
+  }}
 }}
 
 /* ── Bootstrap ── */
+makeCharts();
+updatePeriod('all');
+
+const STREAM_COLORS = [
+  "#4dabf7","#69db7c","#ff6b6b","#ffd43b","#d4a6f7","#b197fc",
+  "#f06595","#74c0fc","#a9e34b","#ffa94d","#63e6be","#e599f7",
+  "#ced4da","#ff8787"
+];
+
+/* ══════════════════════════════════════════════════════════
+   8A — CONCEPT EVOLUTION TIMELINE (stacked area)
+══════════════════════════════════════════════════════════ */
+var areaChart = null;
+var _areaMode = 'stacked';
+
+function _buildAreaDatasets(mode) {{
+  return EVOLUTION.datasets.map(function(ds, i) {{
+    var rawData = ds.data;
+    var finalData = rawData;
+    if (mode === 'pct') {{
+      var totals = EVOLUTION.quarters.map(function(q, qi) {{
+        return EVOLUTION.datasets.reduce(function(acc, d) {{ return acc + d.data[qi]; }}, 0);
+      }});
+      finalData = rawData.map(function(v, qi) {{
+        return totals[qi] === 0 ? 0 : parseFloat((v / totals[qi] * 100).toFixed(1));
+      }});
+    }}
+    return {{
+      label: ds.label,
+      data: finalData,
+      backgroundColor: ds.color + 'bb',
+      borderColor: ds.color,
+      borderWidth: 1.5,
+      fill: true,
+      tension: 0.38,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+    }};
+  }});
+}}
+
+(function initArea() {{
+  var ctx = document.getElementById('chartArea').getContext('2d');
+  areaChart = new Chart(ctx, {{
+    type: 'line',
+    data: {{ labels: EVOLUTION.quarters, datasets: _buildAreaDatasets('stacked') }},
+    options: {{
+      responsive: true, maintainAspectRatio: false,
+      interaction: {{ mode: 'index', intersect: false }},
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: {{
+          backgroundColor: "{C['card2']}f0",
+          titleColor: "{C['txt1']}", bodyColor: "{C['txt2']}",
+          borderColor: "{C['border']}", borderWidth: 1,
+          callbacks: {{
+            label: function(ctx) {{
+              return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y +
+                (_areaMode === 'pct' ? '%' : ' pernyataan');
+            }},
+          }},
+        }},
+      }},
+      scales: {{
+        x: {{
+          stacked: true,
+          ticks: {{ color: "{C['txt2']}", maxRotation: 45,
+                   autoSkip: true, maxTicksLimit: 20, font: {{ size: 10 }} }},
+          grid: {{ color: "{C['border']}50" }},
+        }},
+        y: {{
+          stacked: true,
+          ticks: {{ color: "{C['txt2']}" }},
+          grid: {{ color: "{C['border']}80" }},
+          title: {{ display: true, text: 'Jumlah Pernyataan',
+                    color: "{C['txt2']}", font: {{ size: 11 }} }},
+        }},
+      }},
+    }},
+  }});
+
+  /* Build keyword legend */
+  var leg = document.getElementById('areaLegend');
+  EVOLUTION.datasets.forEach(function(ds) {{
+    var span = document.createElement('span');
+    span.style.cssText = 'display:flex;align-items:center;gap:5px;';
+    span.innerHTML =
+      '<span style="width:11px;height:11px;border-radius:2px;flex-shrink:0;background:' +
+      ds.color + ';"></span><span>' + ds.label + '</span>';
+    leg.appendChild(span);
+  }});
+}})();
+
+function setAreaMode(mode, btn) {{
+  _areaMode = mode;
+  document.querySelectorAll('.adv-toggle').forEach(function(b) {{
+    b.style.borderColor  = "{C['border']}";
+    b.style.background   = "{C['card2']}";
+    b.style.color        = "{C['txt2']}";
+  }});
+  btn.style.borderColor = "{C['accent']}";
+  btn.style.background  = "{C['bg']}";
+  btn.style.color       = "{C['txt1']}";
+  areaChart.data.datasets = _buildAreaDatasets(mode);
+  areaChart.options.scales.y.title.text =
+    mode === 'pct' ? 'Proporsi (%)' : 'Jumlah Pernyataan';
+  areaChart.update();
+}}
+
+/* ══════════════════════════════════════════════════════════
+   8B — POSITION SHIFT MATRIX
+══════════════════════════════════════════════════════════ */
+var _allMatrixRows = MATRIX.rows;
+
+function _posCell(cell) {{
+  if (!cell) {{
+    return '<td style="text-align:center;">' +
+      '<span style="display:inline-flex;align-items:center;justify-content:center;' +
+      'min-width:58px;padding:4px 6px;font-size:0.74rem;color:{C['border']};">—</span>' +
+      '</td>';
+  }}
+  var pos = cell.dominant;
+  var bg  = {{ PRO:"{C['pro']}", KONTRA:"{C['kontra']}", NETRAL:"{C['netral']}", AMBIGU:"{C['ambigu']}" }}[pos] || "{C['netral']}";
+  var fg  = (pos === 'KONTRA') ? '#fff' : '#000';
+  var tip = 'PRO:' + cell.pro + ' | KONTRA:' + cell.kontra + ' | NETRAL:' + cell.netral;
+  return '<td style="text-align:center;">' +
+    '<span style="display:inline-flex;align-items:center;justify-content:center;' +
+    'border-radius:6px;min-width:58px;padding:4px 7px;font-size:0.74rem;' +
+    'font-weight:700;background:' + bg + ';color:' + fg + ';" title="' + tip + '">' +
+    pos + ' <small>(' + cell.total + ')</small></span></td>';
+}}
+
+function renderMatrix(rows) {{
+  var tbody = document.getElementById('matrixBody');
+  tbody.innerHTML = '';
+  rows.forEach(function(row) {{
+    var pivotBadge = row.pivot
+      ? '<span style="display:inline-block;margin-left:5px;font-size:0.64rem;' +
+        'background:{C['ambigu']};color:#000;border-radius:4px;' +
+        'padding:1px 5px;font-weight:700;">PIVOT</span>'
+      : '';
+    var nameStyle = row.pivot
+      ? 'color:{C['ambigu']};font-weight:600;'
+      : 'color:{C['txt1']};';
+    var tr =
+      '<tr style="border-bottom:1px solid {C['border']};">' +
+      '<td style="padding:6px 10px;max-width:190px;overflow:hidden;' +
+      'text-overflow:ellipsis;white-space:nowrap;' + nameStyle +
+      '" title="' + row.actor + '">' + row.actor + pivotBadge + '</td>' +
+      _posCell(row.cells[0]) +
+      _posCell(row.cells[1]) +
+      _posCell(row.cells[2]) +
+      '<td style="text-align:center;color:{C['txt2']};font-size:0.75rem;padding:6px 10px;">' +
+      row.total + '</td></tr>';
+    tbody.insertAdjacentHTML('beforeend', tr);
+  }});
+  document.getElementById('matrixCount').textContent =
+    'Menampilkan ' + rows.length + ' dari ' + _allMatrixRows.length + ' aktor';
+}}
+
+function filterMatrix(query) {{
+  var pivotOnly = document.getElementById('pivotOnly').checked;
+  var q = (query || '').toLowerCase().trim();
+  var filtered = _allMatrixRows.filter(function(r) {{
+    return (!q || r.actor.toLowerCase().includes(q)) && (!pivotOnly || r.pivot);
+  }});
+  renderMatrix(filtered);
+}}
+
+renderMatrix(_allMatrixRows);
+
+/* ── Bootstrap all charts ── */
 makeCharts();
 updatePeriod('all');
 </script>
