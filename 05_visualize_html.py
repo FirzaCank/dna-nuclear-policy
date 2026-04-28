@@ -823,6 +823,50 @@ ACTOR_TYPE_COLORS_JS = json.dumps([
 ])
 # Tema by period already serialized above as TEMA_DATA_JSON
 
+# ── Domain analysis (all eras, active actors only) ────────────────────────────
+from urllib.parse import urlparse as _urlparse
+
+_src_col = "source_url" if "source_url" in flat_df.columns else "source"
+
+def _extract_domain(url):
+    try:
+        h = _urlparse(str(url)).netloc
+        for pfx in ("www.", "www2.", "m."):
+            if h.startswith(pfx):
+                h = h[len(pfx):]
+        return h if h else str(url)
+    except Exception:
+        return str(url)
+
+if not flat_df.empty and _src_col in flat_df.columns:
+    _flat_dom = flat_df.copy()
+    _flat_dom["domain"] = _flat_dom[_src_col].apply(_extract_domain)
+    _dom_agg = (
+        _flat_dom.groupby("domain")
+        .agg(
+            n_articles=(_src_col,   "nunique"),
+            n_stmt    =("position", "count"),
+            pro       =("position", lambda x: (x == "PRO").sum()),
+            kontra    =("position", lambda x: (x == "KONTRA").sum()),
+            netral    =("position", lambda x: (x == "NETRAL").sum()),
+        )
+        .reset_index()
+        .sort_values("n_articles", ascending=False)
+        .head(15)
+    )
+else:
+    _dom_agg = pd.DataFrame(columns=["domain","n_articles","n_stmt","pro","kontra","netral"])
+
+DOMAIN_JSON = json.dumps({
+    "labels"    : _dom_agg["domain"].tolist(),
+    "articles"  : [int(v) for v in _dom_agg.get("n_articles", pd.Series()).tolist()],
+    "statements": [int(v) for v in _dom_agg.get("n_stmt",     pd.Series()).tolist()],
+    "pro"       : [int(v) for v in _dom_agg.get("pro",        pd.Series()).tolist()],
+    "kontra"    : [int(v) for v in _dom_agg.get("kontra",     pd.Series()).tolist()],
+    "netral"    : [int(v) for v in _dom_agg.get("netral",     pd.Series()).tolist()],
+}, ensure_ascii=False)
+print(f"[DOMAIN] {len(_dom_agg)} domains (all eras)")
+
 # ── Build HTML ─────────────────────────────────────────────────────────────────
 HTML = f"""<!DOCTYPE html>
 <html lang="id">
@@ -1150,6 +1194,26 @@ canvas{{max-height:320px}}
   </div>
 
 
+  <!-- ── Source Domain Analysis (Prabowo era) ─────────────────────────── -->
+  <div class="section">
+    <h2>Sumber Berita — Domain Terbanyak (Semua Era)</h2>
+    <p style="font-size:0.82rem;color:{C['txt2']};margin-bottom:14px;">
+      Top 15 domain berdasarkan jumlah artikel unik yang dikutip oleh aktor aktif (≥3 pernyataan), seluruh periode.
+    </p>
+    <div class="chart-row">
+      <div class="section" style="background:transparent;border:none;padding:0;">
+        <div style="font-size:0.8rem;color:{C['txt2']};margin-bottom:6px;">Jumlah artikel unik per domain</div>
+        <canvas id="chartDomainArticles" style="max-height:none;" role="img"
+          aria-label="Bar chart domain sumber berita era Prabowo"></canvas>
+      </div>
+      <div class="section" style="background:transparent;border:none;padding:0;">
+        <div style="font-size:0.8rem;color:{C['txt2']};margin-bottom:6px;">Distribusi posisi pernyataan per domain</div>
+        <canvas id="chartDomainPos" style="max-height:none;" role="img"
+          aria-label="Stacked bar chart posisi per domain sumber berita"></canvas>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /.container -->
 
 <!-- ═══════════════════ JavaScript ═══════════════════ -->
@@ -1161,8 +1225,9 @@ const ACTOR_TYPE_COLORS = {ACTOR_TYPE_COLORS_JS};
 const TEMA_DATA = {TEMA_DATA_JSON};
 
 /* ── Advanced analytics data (8A / 8B) ── */
-const EVOLUTION = {EVOLUTION_JSON};
-const MATRIX    = {MATRIX_JSON};
+const EVOLUTION   = {EVOLUTION_JSON};
+const MATRIX      = {MATRIX_JSON};
+const DOMAIN_DATA = {DOMAIN_JSON};
 
 /* ── Tema per periode charts (static — always show all 3 periods) ── */
 (function() {{
@@ -1566,6 +1631,60 @@ function filterMatrix(query) {{
 }}
 
 renderMatrix(_allMatrixRows);
+
+/* ══════════════════════════════════════════════════════════
+   DOMAIN CHARTS — sumber berita era Prabowo
+══════════════════════════════════════════════════════════ */
+(function() {{
+  var dd = DOMAIN_DATA;
+  if (!dd || !dd.labels || dd.labels.length === 0) return;
+  var _tick = {{ color: "{C['txt1']}", font: {{ size: 12 }} }};
+
+  new Chart(document.getElementById('chartDomainArticles'), {{
+    type: 'bar',
+    data: {{
+      labels: dd.labels,
+      datasets: [{{
+        label: 'Artikel',
+        data: dd.articles,
+        backgroundColor: "{C['info']}",
+        borderRadius: 4,
+      }}],
+    }},
+    options: {{
+      indexAxis: 'y',
+      responsive: true,
+      aspectRatio: 1.8,
+      plugins: {{ legend: {{ display: false }} }},
+      scales: {{
+        x: {{ ticks: TICK_OPTS, grid: {{ color: "{C['border']}" }} }},
+        y: {{ ticks: _tick }},
+      }},
+    }},
+  }});
+
+  new Chart(document.getElementById('chartDomainPos'), {{
+    type: 'bar',
+    data: {{
+      labels: dd.labels,
+      datasets: [
+        {{ label: 'PRO',    data: dd.pro,    backgroundColor: "{C['pro']}",    borderRadius: 0 }},
+        {{ label: 'KONTRA', data: dd.kontra, backgroundColor: "{C['kontra']}", borderRadius: 0 }},
+        {{ label: 'NETRAL', data: dd.netral, backgroundColor: "{C['netral']}", borderRadius: 0 }},
+      ],
+    }},
+    options: {{
+      indexAxis: 'y',
+      responsive: true,
+      aspectRatio: 1.8,
+      plugins: {{ legend: LEGEND_OPTS }},
+      scales: {{
+        x: {{ stacked: true, ticks: TICK_OPTS, grid: {{ color: "{C['border']}" }} }},
+        y: {{ stacked: true, ticks: _tick }},
+      }},
+    }},
+  }});
+}})();
 
 /* ── Bootstrap all charts ── */
 makeCharts();
