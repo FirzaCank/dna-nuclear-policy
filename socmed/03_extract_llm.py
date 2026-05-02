@@ -74,7 +74,8 @@ def call_gemini(caption: str) -> dict | None:
             text = text.split("```")[1]
             if text.startswith("json"):
                 text = text[4:]
-        return json.loads(text.strip())
+        parsed = json.loads(text.strip())
+        return parsed if isinstance(parsed, dict) else None
     except Exception as e:
         print(f"  ERROR: {e}")
         return None
