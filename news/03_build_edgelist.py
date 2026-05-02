@@ -19,8 +19,9 @@ import numpy as np
 from pathlib import Path
 from collections import defaultdict
 
-INPUT  = "output/extracted_raw.jsonl"
-OUTDIR = Path("output")
+ROOT   = Path(__file__).parent.parent
+INPUT  = ROOT / "output" / "extracted_raw.jsonl"
+OUTDIR = ROOT / "output"
 OUTDIR.mkdir(exist_ok=True)
 
 # ── Scope: variables included in analysis ─────────────────────────────────────
@@ -31,7 +32,7 @@ EXCLUDED_VARS = ["Subordinasi Oposisi", "Sinkronisasi Regulasi"]
 #   input/flat_statements_reviewed.csv
 # Pipeline will use it directly (skip JSONL re-parsing).
 # If the file does not exist, pipeline parses from extracted_raw.jsonl as usual.
-REVIEWED_FILE = Path("input/flat_statements_reviewed.csv")
+REVIEWED_FILE = ROOT / "input" / "flat_statements_reviewed.csv"
 
 if REVIEWED_FILE.exists():
     print(f"[SOURCE] Using reviewed CSV: {REVIEWED_FILE}")
@@ -94,7 +95,7 @@ else:
     df = df[~df['variable'].isin(EXCLUDED_VARS)].copy()  # scope to 7 variables
 
     # ── Apply manual corrections ──────────────────────────────────────────────
-    CORRECTIONS_FILE = Path("input/manual_corrections.csv")
+    CORRECTIONS_FILE = ROOT / "input" / "manual_corrections.csv"
     if CORRECTIONS_FILE.exists():
         corr = pd.read_csv(CORRECTIONS_FILE, dtype=str).dropna(subset=["source_id","actor","action"])
         corr["source_id"] = corr["source_id"].astype(str).str.strip()

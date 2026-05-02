@@ -16,12 +16,17 @@ Input : output/01_flat_statements.csv
         output/05c_edges_actor_keyword.csv
 """
 
+import sys
 import pandas as pd
 from pathlib import Path
+
+ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(ROOT))
+
 from config.institution_mapping import get_institution
 from config.actor_notes import get_notes
 
-OUTDIR = Path("output")
+OUTDIR = ROOT / "output"
 MIN_STATEMENTS = 3
 
 # ── Load data ─────────────────────────────────────────────────────────────────

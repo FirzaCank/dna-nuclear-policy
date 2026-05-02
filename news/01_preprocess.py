@@ -14,9 +14,11 @@ Noise removed:
 
 import pandas as pd
 import re
+from pathlib import Path
 
-INPUT  = "input/9_ready_to_parse.csv"
-OUTPUT = "output/cleaned.csv"
+ROOT   = Path(__file__).parent.parent
+INPUT  = ROOT / "input" / "9_ready_to_parse.csv"
+OUTPUT = ROOT / "output" / "cleaned.csv"
 
 # ── Load ─────────────────────────────────────────────────────────────────────
 df = pd.read_csv(INPUT)

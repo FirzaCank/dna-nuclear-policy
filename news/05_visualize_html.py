@@ -26,16 +26,20 @@ INSTALL:
   pip install pyvis pandas
 """
 
+import sys
 import base64
 import json
 from pathlib import Path
 
 import pandas as pd
 
+ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(ROOT))
+
 from config.institution_mapping import get_institution
 from config.keyword_merge import KEYWORD_MERGE
 
-OUTDIR = Path("output")
+OUTDIR = ROOT / "output"
 MIN_STATEMENTS = 3  # actors with fewer statements are excluded
 
 # ── WCAG AA palette  (contrast ratio against #1e1e2e background) ───────────────

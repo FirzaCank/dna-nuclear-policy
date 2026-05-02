@@ -27,8 +27,9 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 
-INPUT  = "output/01_flat_statements.csv"
-OUTPUT = "output/07_sentiment_scored.csv"
+ROOT   = Path(__file__).parent.parent
+INPUT  = ROOT / "output" / "01_flat_statements.csv"
+OUTPUT = ROOT / "output" / "07_sentiment_scored.csv"
 
 # Choose method: "gemini", "indobert", or "lexicon"
 METHOD = "gemini"

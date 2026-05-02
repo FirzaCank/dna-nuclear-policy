@@ -28,8 +28,9 @@ SLEEP_SEC   = 1.2     # Jeda antar request (sesuaikan kalau kena rate limit)
 MAX_RETRIES = 3
 TEST_MODE   = False    # True = hanya proses 5 artikel pertama untuk testing
 
-INPUT  = "output/cleaned.csv"
-OUTPUT = "output/extracted_raw.jsonl"  # Simpan per-baris JSONL (resumable)
+ROOT   = Path(__file__).parent.parent
+INPUT  = ROOT / "output" / "cleaned.csv"
+OUTPUT = ROOT / "output" / "extracted_raw.jsonl"  # Simpan per-baris JSONL (resumable)
 # ══════════════════════════════════════════════════════════════════════════════
 
 

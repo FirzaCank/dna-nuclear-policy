@@ -27,7 +27,8 @@ How to import into Gephi:
 import pandas as pd
 from pathlib import Path
 
-OUTDIR      = Path("output")
+ROOT        = Path(__file__).parent.parent
+OUTDIR      = ROOT / "output"
 GEPHI_DIR   = OUTDIR / "gephi"
 GEPHI_DIR.mkdir(exist_ok=True)
 
