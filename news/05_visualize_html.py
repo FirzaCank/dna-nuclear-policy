@@ -883,6 +883,11 @@ HTML = f"""<!DOCTYPE html>
 /* ── Reset & base ── */
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:'Segoe UI',system-ui,sans-serif;background:{C['bg']};color:{C['txt1']};line-height:1.5}}
+/* ── Tab nav ── */
+.tab-nav{{background:#161622;border-bottom:2px solid {C['border']};display:flex;gap:2px;padding:0 48px}}
+.tab-link{{color:{C['txt2']};padding:11px 22px;text-decoration:none;border-bottom:3px solid transparent;font-size:0.9rem;font-weight:600;margin-bottom:-2px;transition:color .15s;display:inline-block;}}
+.tab-link:hover{{color:{C['txt1']}}}
+.tab-active{{color:{C['accent']};border-bottom-color:{C['accent']}}}
 /* ── Header ── */
 .header{{background:linear-gradient(135deg,{C['hdr_from']},{C['hdr_to']});padding:28px 48px}}
 .header h1{{font-size:1.85rem;color:#fff;letter-spacing:-0.5px}}
@@ -941,6 +946,11 @@ canvas{{max-height:320px}}
   <h1>Discourse Network Analysis</h1>
   <p>Kebijakan Energi Nuklir Indonesia — Laporan Analisis Wacana Aktor-Konsep</p>
 </div>
+
+<nav class="tab-nav">
+  <a href="report_dna.html" class="tab-link tab-active">📰 Berita Nasional</a>
+  <a href="socmed_report.html" class="tab-link">📸 Instagram</a>
+</nav>
 
 <div class="container">
 
