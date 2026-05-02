@@ -13,8 +13,8 @@ import pandas as pd
 from pathlib import Path
 
 ROOT        = Path(__file__).parent.parent
-INPUT_DIR   = str(ROOT / "input" / "Socmed")
-OUTPUT_PATH = str(ROOT / "output" / "socmed_merged.csv")
+INPUT_DIR   = str(ROOT / "input" / "socmed" / "instagram")
+OUTPUT_PATH = str(ROOT / "output" / "socmed" / "instagram" / "socmed_merged.csv")
 
 # filename stem → (variable_number, category, variable_name, keyword)
 FILE_MAP = {

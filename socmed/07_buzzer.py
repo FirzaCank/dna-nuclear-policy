@@ -19,8 +19,9 @@ import numpy as np
 from pathlib import Path
 
 ROOT   = Path(__file__).parent.parent
-INPUT  = ROOT / "output" / "socmed_cleaned.csv"
-OUTPUT = ROOT / "output" / "socmed_buzzer_scores.csv"
+IG_DIR = ROOT / "output" / "socmed" / "instagram"
+INPUT  = IG_DIR / "socmed_cleaned.csv"
+OUTPUT = IG_DIR / "socmed_buzzer_scores.csv"
 
 BUZZER_THRESHOLD = 2
 

@@ -18,8 +18,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ROOT    = Path(__file__).parent.parent
-INPUT   = ROOT / "output" / "socmed_cleaned.csv"
-OUTPUT  = ROOT / "output" / "socmed_extracted_raw.jsonl"
+IG_DIR  = ROOT / "output" / "socmed" / "instagram"
+INPUT   = IG_DIR / "socmed_cleaned.csv"
+OUTPUT  = IG_DIR / "socmed_extracted_raw.jsonl"
 
 API_KEY      = os.getenv("API_KEY")
 MODEL        = "gemini-2.5-flash"
@@ -55,10 +56,19 @@ Kembalikan JSON persis:
 
 def call_gemini(caption: str) -> dict | None:
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=API_KEY)
-        model = genai.GenerativeModel(MODEL, system_instruction=PROMPT_SYSTEM)
-        resp = model.generate_content(caption)
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=API_KEY)
+        resp = client.models.generate_content(
+            model=MODEL,
+            contents=caption,
+            config=types.GenerateContentConfig(
+                system_instruction=PROMPT_SYSTEM,
+                temperature=0.1,
+                max_output_tokens=1024,
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
+            ),
+        )
         text = resp.text.strip()
         if text.startswith("```"):
             text = text.split("```")[1]

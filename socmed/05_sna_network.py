@@ -14,10 +14,11 @@ import pandas as pd
 from pathlib import Path
 from collections import defaultdict
 
-ROOT    = Path(__file__).parent.parent
-INPUT   = ROOT / "output" / "socmed_cleaned.csv"
-OUT_EDGES = ROOT / "output" / "socmed_edges_mention.csv"
-OUT_NODES = ROOT / "output" / "socmed_nodes_actors.csv"
+ROOT      = Path(__file__).parent.parent
+IG_DIR    = ROOT / "output" / "socmed" / "instagram"
+INPUT     = IG_DIR / "socmed_cleaned.csv"
+OUT_EDGES = IG_DIR / "socmed_edges_mention.csv"
+OUT_NODES = IG_DIR / "socmed_nodes_actors.csv"
 
 MIN_WEIGHT = 1  # minimum mentions to include edge
 

@@ -13,9 +13,10 @@ import pandas as pd
 from pathlib import Path
 
 ROOT    = Path(__file__).parent.parent
-INPUT   = ROOT / "output" / "socmed_merged.csv"
-OUTPUT  = ROOT / "output" / "socmed_cleaned.csv"
-REMOVED = ROOT / "output" / "socmed_removed.csv"
+IG_DIR  = ROOT / "output" / "socmed" / "instagram"
+INPUT   = IG_DIR / "socmed_merged.csv"
+OUTPUT  = IG_DIR / "socmed_cleaned.csv"
+REMOVED = IG_DIR / "socmed_removed.csv"
 
 # Must match >=1 term (case-insensitive, word-boundary aware)
 # Covers nuclear + energy policy in Indonesian + English

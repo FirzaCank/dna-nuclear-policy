@@ -15,9 +15,10 @@ from collections import defaultdict
 from itertools import combinations
 
 ROOT      = Path(__file__).parent.parent
-INPUT     = ROOT / "output" / "socmed_cleaned.csv"
-OUT_EDGES = ROOT / "output" / "socmed_edges_hashtag.csv"
-OUT_NODES = ROOT / "output" / "socmed_nodes_hashtag.csv"
+IG_DIR    = ROOT / "output" / "socmed" / "instagram"
+INPUT     = IG_DIR / "socmed_cleaned.csv"
+OUT_EDGES = IG_DIR / "socmed_edges_hashtag.csv"
+OUT_NODES = IG_DIR / "socmed_nodes_hashtag.csv"
 
 MIN_COOCCURRENCE = 3   # minimum co-occurrence to include edge
 MIN_POSTS        = 2   # minimum posts for a hashtag node
