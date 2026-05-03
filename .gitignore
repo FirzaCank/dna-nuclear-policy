@@ -1,5 +1,5 @@
-# ── Generated output files (do not commit) ───────────────────────────────────
-output/
+# ── Generated data (do not commit) ───────────────────────────────────────────
+data/processed/
 *.csv
 *.html
 !docs/*.html
@@ -8,22 +8,22 @@ output/
 *.jpg
 *.jpeg
 
-# ── Secrets ───────────────────────────────────────────────────────────────────
+# ── Raw data (may contain sensitive source data) ─────────────────────────────
+data/raw/
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
 .env
 
-# ── Python virtual environment ────────────────────────────────────────────────
+# ── Python virtual environment ───────────────────────────────────────────────
 venv/
 .venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
 
-# ── macOS ─────────────────────────────────────────────────────────────────────
+# ── macOS ────────────────────────────────────────────────────────────────────
 .DS_Store
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
-log/
+logs/
 *.log
-
-# ── Input data (may contain sensitive source data) ───────────────────────────
-input/

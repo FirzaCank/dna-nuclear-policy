@@ -28,42 +28,58 @@ All dashboards include:
 
 ```
 DNA/
-├── news/                          # News article pipeline
-│   ├── 01_preprocess.py           # Clean raw scraped articles
-│   ├── 02_extract_llm.py          # LLM: actor / stance / concept extraction
-│   ├── 03_build_edgelist.py       # Build DNA bipartite + SNA edgelists
-│   ├── 04_sentiment.py            # Sentiment scoring per statement
-│   ├── 05_visualize_html.py       # Generate interactive HTML dashboard
-│   ├── 06_export_gephi.py         # Export Gephi-ready CSVs
-│   ├── 07_export_analysis_csvs.py
-│   └── 08_build_report_docx.py    # Generate Word report
+├── pipelines/
+│   ├── news/                          # News article pipeline
+│   │   ├── 01_preprocess.py           # Clean raw scraped articles
+│   │   ├── 02_extract_llm.py          # LLM: actor / stance / concept extraction
+│   │   ├── 03_build_edgelist.py       # Build DNA bipartite + SNA edgelists
+│   │   ├── 04_sentiment.py            # Sentiment scoring per statement
+│   │   ├── 05_visualize_html.py       # Generate interactive HTML dashboard
+│   │   ├── 06_export_gephi.py         # Export Gephi-ready CSVs
+│   │   ├── 07_export_analysis_csvs.py
+│   │   └── 08_build_report_docx.py    # Generate Word report
+│   └── socmed/
+│       ├── instagram/                 # Instagram pipeline
+│       │   ├── 01_merge.py
+│       │   ├── 02_clean.py
+│       │   ├── 03_extract_llm.py
+│       │   ├── 04_sentiment.py
+│       │   ├── 05_sna_network.py
+│       │   ├── 06_cohashtag.py
+│       │   ├── 07_buzzer.py
+│       │   └── 08_visualize.py
+│       ├── youtube/                   # YouTube pipeline
+│       │   ├── 01_merge.py
+│       │   ├── 02_get_channels.py
+│       │   ├── 03_fetch_metadata.py   # YouTube Data API v3
+│       │   ├── 04_extract_llm.py
+│       │   ├── 05_sentiment.py
+│       │   ├── 06_build_edgelist.py
+│       │   └── 07_visualize.py
+│       └── facebook/                  # Facebook pipeline
+│           ├── 01_scrape.py           # Playwright + cookie auth
+│           ├── 02_clean.py
+│           ├── 03_extract_llm.py
+│           ├── 04_sentiment.py
+│           └── 05_visualize.py
 │
-├── socmed/                        # Social media pipeline
-│   ├── 01_merge.py                # Merge Instagram raw CSVs
-│   ├── 01b_merge_youtube.py       # Merge YouTube raw CSVs
-│   ├── 01c_get_youtube_channels.py
-│   ├── 01d_fetch_youtube_metadata.py   # Fetch via YouTube Data API v3
-│   ├── 01e_scrape_facebook.py     # Playwright + cookie auth keyword scraper
-│   ├── 02_clean.py                # Clean Instagram data
-│   ├── 02_clean_facebook.py       # Clean Facebook data
-│   ├── 02_extract_llm_youtube.py  # LLM extraction for YouTube
-│   ├── 03_extract_llm.py          # LLM stance extraction for Instagram
-│   ├── 03_extract_llm_facebook.py
-│   ├── 03_sentiment_youtube.py
-│   ├── 04_build_edgelist_youtube.py
-│   ├── 04_sentiment.py            # Sentiment scoring for Instagram
-│   ├── 04_sentiment_facebook.py
-│   ├── 05_sna_network.py          # Instagram mention network
-│   ├── 05_visualize_socmed.py     # Instagram HTML dashboard
-│   ├── 05_visualize_youtube.py    # YouTube HTML dashboard
-│   ├── 05_visualize_facebook.py   # Facebook HTML dashboard
-│   ├── 06_cohashtag.py            # Hashtag co-occurrence network
-│   └── 07_buzzer.py               # Bot/buzzer detection scoring
+├── data/
+│   ├── raw/                           # Raw inputs (gitignored)
+│   │   ├── news/
+│   │   ├── instagram/
+│   │   ├── youtube/
+│   │   ├── facebook/
+│   │   └── variable_keywords.csv
+│   └── processed/                     # Pipeline outputs (gitignored)
+│       ├── news/
+│       ├── instagram/
+│       ├── youtube/
+│       └── facebook/
 │
-├── input/                         # Raw data inputs
-├── output/                        # Generated outputs (gitignored)
-├── docs/                          # GitHub Pages (18 HTML files)
-└── .env                           # API_KEY, YT_API_KEY, FB_COOKIES_FILE
+├── config/                            # Shared actor/keyword mappings
+├── assets/                            # JS libs (vis.js, tom-select)
+├── docs/                              # GitHub Pages (HTML dashboards)
+└── .env                               # API_KEY, YT_API_KEY, FB_COOKIES_FILE
 ```
 
 ---
@@ -73,57 +89,57 @@ DNA/
 ### News Articles
 
 ```
-news/01_preprocess.py          Clean raw articles
+pipelines/news/01_preprocess.py          Clean raw articles
         ↓
-news/02_extract_llm.py         LLM: actor / stance / concept  [Gemini 2.5 Flash]
+pipelines/news/02_extract_llm.py         LLM: actor / stance / concept  [Gemini 2.5 Flash]
         ↓
-news/03_build_edgelist.py      Build DNA bipartite + SNA edgelists
+pipelines/news/03_build_edgelist.py      Build DNA bipartite + SNA edgelists
         ↓
-news/04_sentiment.py           Sentiment per statement
+pipelines/news/04_sentiment.py           Sentiment per statement
         ↓
-news/05_visualize_html.py   →  output/report_dna.html
+pipelines/news/05_visualize_html.py   →  data/processed/news/report_dna.html
 ```
 
 ### Instagram
 
 ```
-socmed/01_merge.py             Merge keyword-scraped CSVs
+pipelines/socmed/instagram/01_merge.py       Merge keyword-scraped CSVs
         ↓
-socmed/02_clean.py             Relevance filter + dedup
+pipelines/socmed/instagram/02_clean.py       Relevance filter + dedup
         ↓
-socmed/03_extract_llm.py       LLM: stance + concepts  [resumable]
+pipelines/socmed/instagram/03_extract_llm.py LLM: stance + concepts  [resumable]
         ↓
-socmed/04_sentiment.py         Sentiment per post
+pipelines/socmed/instagram/04_sentiment.py   Sentiment per post
         ↓
-socmed/05_visualize_socmed.py  → output/socmed_report.html
+pipelines/socmed/instagram/08_visualize.py → data/processed/instagram/socmed_report.html
 ```
 
 ### YouTube
 
 ```
-socmed/01b–01d_*.py            Merge + fetch metadata via YouTube Data API v3
+pipelines/socmed/youtube/01–03_*.py           Merge + fetch metadata via YouTube Data API v3
         ↓
-socmed/02_extract_llm_youtube.py   LLM: stance + concepts  [resumable]
+pipelines/socmed/youtube/04_extract_llm.py   LLM: stance + concepts  [resumable]
         ↓
-socmed/03_sentiment_youtube.py     Sentiment per video
+pipelines/socmed/youtube/05_sentiment.py     Sentiment per video
         ↓
-socmed/04_build_edgelist_youtube.py
+pipelines/socmed/youtube/06_build_edgelist.py
         ↓
-socmed/05_visualize_youtube.py  →  output/youtube_report.html
+pipelines/socmed/youtube/07_visualize.py  →  data/processed/youtube/youtube_report.html
 ```
 
 ### Facebook
 
 ```
-socmed/01e_scrape_facebook.py      Playwright + cookie auth → keyword search
+pipelines/socmed/facebook/01_scrape.py       Playwright + cookie auth → keyword search
         ↓
-socmed/02_clean_facebook.py        Relevance filter + dedup
+pipelines/socmed/facebook/02_clean.py        Relevance filter + dedup
         ↓
-socmed/03_extract_llm_facebook.py  LLM: stance + concepts  [resumable]
+pipelines/socmed/facebook/03_extract_llm.py  LLM: stance + concepts  [resumable]
         ↓
-socmed/04_sentiment_facebook.py    Sentiment per post
+pipelines/socmed/facebook/04_sentiment.py    Sentiment per post
         ↓
-socmed/05_visualize_facebook.py  → output/facebook_report.html
+pipelines/socmed/facebook/05_visualize.py  → data/processed/facebook/facebook_report.html
 ```
 
 ---
@@ -140,12 +156,12 @@ echo 'API_KEY=your_gemini_api_key' > .env
 echo 'YT_API_KEY=your_youtube_data_api_key' >> .env
 
 # Run news pipeline
-python news/01_preprocess.py
-python news/02_extract_llm.py    # resumable — safe to stop/restart
-python news/03_build_edgelist.py
-python news/04_sentiment.py
-python news/05_visualize_html.py
-# → output/report_dna.html
+python pipelines/news/01_preprocess.py
+python pipelines/news/02_extract_llm.py    # resumable — safe to stop/restart
+python pipelines/news/03_build_edgelist.py
+python pipelines/news/04_sentiment.py
+python pipelines/news/05_visualize_html.py
+# → data/processed/news/report_dna.html
 ```
 
 All LLM scripts are **resumable** — progress checkpointed to JSONL/CSV every 50 records.
