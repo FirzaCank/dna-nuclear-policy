@@ -950,6 +950,7 @@ canvas{{max-height:320px}}
 <nav class="tab-nav">
   <a href="report_dna.html" class="tab-link tab-active">BERITA NASIONAL</a>
   <a href="socmed_report.html" class="tab-link">INSTAGRAM</a>
+  <a href="youtube_report.html" class="tab-link">YOUTUBE</a>
 </nav>
 
 <div class="container">

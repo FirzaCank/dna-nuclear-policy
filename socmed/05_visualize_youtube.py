@@ -1,28 +1,26 @@
 """
-STEP 5 — Instagram Social Media Analysis Dashboard
-===================================================
-Input : output/socmed/instagram/socmed_extracted_raw.jsonl
-        output/socmed/instagram/socmed_sentiment.csv
-        output/socmed/instagram/socmed_cleaned.csv
-        output/socmed/instagram/socmed_nodes_actors.csv
-        output/socmed/instagram/socmed_nodes_hashtag.csv
-        output/socmed/instagram/socmed_buzzer_scores.csv
-Output: output/socmed_report.html
-        output/socmed_network_ig_<pid>.html  (per-period mention networks)
+STEP 5b — YouTube DNA Analysis Dashboard
+=========================================
+Input : output/socmed/youtube/youtube_extracted_raw.jsonl
+        output/socmed/youtube/youtube_sentiment.csv  (partial OK)
+        output/socmed/youtube/youtube_metadata.csv
+Output: output/youtube_report.html
+        output/youtube_network_yt_<pid>.html  (per-period channel networks)
 
-Run: source venv/bin/activate && python socmed/05_visualize_socmed.py
+Run: source venv/bin/activate && python socmed/05_visualize_youtube.py
 """
 
 import json
+from itertools import combinations
 from pathlib import Path
 from collections import defaultdict
 
 import pandas as pd
 
 ROOT   = Path(__file__).parent.parent
-IG_DIR = ROOT / "output" / "socmed" / "instagram"
+YT_DIR = ROOT / "output" / "socmed" / "youtube"
 OUTDIR = ROOT / "output"
-OUTPUT = OUTDIR / "socmed_report.html"
+OUTPUT = OUTDIR / "youtube_report.html"
 
 C = {
     "pro":      "#69db7c",
@@ -49,31 +47,39 @@ PERIODS = {
 }
 PERIOD_ORDER = ["all", "jokowi1", "jokowi2", "prabowo"]
 
-# ── Load raw data ─────────────────────────────────────────────────────────────
+# ── Load data ─────────────────────────────────────────────────────────────────
 rows_ext = []
-with open(IG_DIR / "socmed_extracted_raw.jsonl") as f:
+with open(YT_DIR / "youtube_extracted_raw.jsonl") as f:
     for line in f:
         rows_ext.append(json.loads(line))
 df_ext = pd.DataFrame(rows_ext)
-df_ext["pub_date"] = pd.to_datetime(df_ext["pub_date"], utc=True, errors="coerce")
+df_ext["published_at"] = pd.to_datetime(df_ext["published_at"], utc=True, errors="coerce")
+df_ext["view_count"]   = pd.to_numeric(df_ext["view_count"], errors="coerce").fillna(0).astype(int)
+df_ext["like_count"]   = pd.to_numeric(df_ext["like_count"], errors="coerce").fillna(0).astype(int)
+df_ext["comment_count"]= pd.to_numeric(df_ext["comment_count"], errors="coerce").fillna(0).astype(int)
+df_ext["subscriber_count"] = pd.to_numeric(df_ext["subscriber_count"], errors="coerce").fillna(0).astype(int)
 
-df_sent = pd.read_csv(IG_DIR / "socmed_sentiment.csv")
-df_sent["pub_date"] = pd.to_datetime(df_sent["pub_date"], utc=True, errors="coerce")
-
-df_clean = pd.read_csv(IG_DIR / "socmed_cleaned.csv")
-df_clean["pub_date"] = pd.to_datetime(df_clean["pub_date"], utc=True, errors="coerce")
-
-df_nodes  = pd.read_csv(IG_DIR / "socmed_nodes_actors.csv")
-df_buz    = pd.read_csv(IG_DIR / "socmed_buzzer_scores.csv")
+sent_path = YT_DIR / "youtube_sentiment.csv"
+has_sent  = sent_path.exists()
+if has_sent:
+    df_sent = pd.read_csv(sent_path)
+    df_sent = df_sent.dropna(subset=["sentiment"])
+    df_sent["published_at"] = pd.to_datetime(df_sent["published_at"], utc=True, errors="coerce")
+    sent_n = len(df_sent)
+    sent_total = len(df_ext)
+    print(f"[SENTIMENT] {sent_n}/{sent_total} videos scored")
+else:
+    df_sent = pd.DataFrame()
+    print("[SENTIMENT] file not found — sentiment charts disabled")
 
 
 def _slice(df, pid):
     _, pstart, pend = PERIODS[pid]
     d = df
     if pstart:
-        d = d[d["pub_date"] >= pd.Timestamp(pstart, tz="UTC")]
+        d = d[d["published_at"] >= pd.Timestamp(pstart, tz="UTC")]
     if pend:
-        d = d[d["pub_date"] < pd.Timestamp(pend, tz="UTC")]
+        d = d[d["published_at"] < pd.Timestamp(pend, tz="UTC")]
     return d
 
 
@@ -104,101 +110,119 @@ def pos_color(p):
     return {"PRO": C["pro"], "KONTRA": C["kontra"]}.get(p, C["netral"])
 
 
-# ── Build per-period mention edges ────────────────────────────────────────────
-def build_mention_edges(df_clean_slice):
+def parse_concepts(val):
+    if isinstance(val, list):
+        return [c.strip().lower() for c in val if c.strip()]
+    if isinstance(val, str):
+        try:
+            lst = json.loads(val)
+            return [c.strip().lower() for c in lst if c.strip()]
+        except Exception:
+            return []
+    return []
+
+
+def build_channel_network(df_ext_slice):
+    """Channels as nodes, edges = shared variable_name coverage."""
+    ch_vars = defaultdict(set)
+    ch_stance = {}
+    for _, row in df_ext_slice.iterrows():
+        ch = str(row["channel_title"]).strip()
+        var = str(row.get("variable_name", "")).strip()
+        if ch and var:
+            ch_vars[ch].add(var)
+        if ch not in ch_stance:
+            ch_stance[ch] = defaultdict(int)
+        ch_stance[ch][row.get("position", "NETRAL")] += 1
+
+    channels = list(ch_vars.keys())
     edge_count = defaultdict(int)
-    for _, row in df_clean_slice.dropna(subset=["mentions"]).iterrows():
-        src = str(row["username"]).strip()
-        targets = [t.strip() for t in str(row["mentions"]).split(",") if t.strip()]
-        for tgt in targets:
-            if tgt and tgt != src:
-                edge_count[(src, tgt)] += 1
-    return [(s, t, w) for (s, t), w in sorted(edge_count.items(), key=lambda x: -x[1])]
+    for a, b in combinations(channels, 2):
+        shared = len(ch_vars[a] & ch_vars[b])
+        if shared >= 1:
+            edge_count[(a, b)] += shared
+
+    edges = [(a, b, w) for (a, b), w in edge_count.items()]
+    dom_map = {}
+    for ch, counts in ch_stance.items():
+        dom_map[ch] = dominant_pos({"PRO": counts.get("PRO", 0),
+                                    "KONTRA": counts.get("KONTRA", 0),
+                                    "NETRAL": counts.get("NETRAL", 0)})
+    return edges, dom_map
 
 
-# ── Build pyvis network ───────────────────────────────────────────────────────
-FREEZE_JS = """
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  if (typeof network !== "undefined") {
-    network.on("stabilizationIterationsDone", function() { network.setOptions({physics:{enabled:false}}); });
-    setTimeout(function(){ network.setOptions({physics:{enabled:false}}); }, 8000);
-  }
-});
-</script>"""
-
-def build_network_html(edges, actor_stance_map, out_path):
+def build_network_html(edges, dom_map, ch_video_counts, out_path):
     try:
         from pyvis.network import Network
     except ImportError:
-        print("  [WARN] pyvis not installed — skipping network")
         out_path.write_text("<p style='color:#aaa;padding:20px'>pip install pyvis</p>")
         return
 
-    # keep top 80 edges by weight, limit to nodes that appear
-    edges_top = sorted(edges, key=lambda x: -x[2])[:80]
+    edges_top = sorted(edges, key=lambda x: -x[2])[:100]
     all_nodes = set()
     for s, t, _ in edges_top:
         all_nodes.add(s)
         all_nodes.add(t)
 
     net = Network(height="600px", width="100%", bgcolor="#0f0f1a",
-                  directed=True, notebook=False)
+                  directed=False, notebook=False)
     net.set_options(json.dumps({
         "physics": {
             "forceAtlas2Based": {
-                "gravitationalConstant": -200, "springLength": 200,
+                "gravitationalConstant": -180, "springLength": 200,
                 "springConstant": 0.05, "damping": 0.9,
             },
             "solver": "forceAtlas2Based",
             "stabilization": {"enabled": True, "iterations": 300, "fit": True},
         },
-        "edges": {"smooth": {"type": "curvedCW", "roundness": 0.15}, "arrows": {"to": {"enabled": True, "scaleFactor": 0.5}}},
+        "edges": {"smooth": {"type": "curvedCW", "roundness": 0.1}},
         "interaction": {"hover": True, "dragNodes": True},
     }))
 
     for node in all_nodes:
-        stance = actor_stance_map.get(node, "NETRAL")
+        stance = dom_map.get(node, "NETRAL")
         col = {"PRO": C["pro"], "KONTRA": C["kontra"]}.get(stance, C["netral"])
+        vcount = ch_video_counts.get(node, 1)
+        size = max(10, min(35, 10 + vcount * 2))
         net.add_node(
-            node, label=f"@{node}", color={"background": col, "border": col},
-            shape="dot", size=20, title=f"@{node} | {stance}",
-            font={"color": "#ffffff", "size": 13, "strokeWidth": 2, "strokeColor": "#000000"},
+            node, label=node[:25], color={"background": col, "border": col},
+            shape="dot", size=size, title=f"{node} | {stance} | {vcount} video",
+            font={"color": "#ffffff", "size": 12, "strokeWidth": 2, "strokeColor": "#000000"},
         )
 
     for s, t, w in edges_top:
-        col = {"PRO": C["pro"], "KONTRA": C["kontra"]}.get(
-            actor_stance_map.get(s, "NETRAL"), C["netral"])
-        net.add_edge(s, t, width=max(1, min(8, w)), color=col,
-                     title=f"{s} → {t} | n={w}")
+        net.add_edge(s, t, width=max(1, min(6, w)), color="#3d3d6b",
+                     title=f"{s} ↔ {t} | shared topics={w}")
 
     net.save_graph(str(out_path))
-    html = out_path.read_text(encoding="utf-8")
-    out_path.write_text(html, encoding="utf-8")
 
 
 # ── Precompute per-period data ────────────────────────────────────────────────
-period_data   = {}
-network_paths = {}
+period_data = {}
 
 for pid in PERIOD_ORDER:
-    ext_s   = _slice(df_ext, pid)
-    sent_s  = _slice(df_sent, pid)
-    clean_s = _slice(df_clean, pid)
+    ext_s  = _slice(df_ext, pid)
+    sent_s = _slice(df_sent, pid) if has_sent and len(df_sent) > 0 else pd.DataFrame()
 
     n_pro    = int((ext_s["position"] == "PRO").sum())
     n_kontra = int((ext_s["position"] == "KONTRA").sum())
     n_netral = int((ext_s["position"] == "NETRAL").sum())
-    n_pos    = int((sent_s["sentiment"] == "POSITIVE").sum())
-    n_neg    = int((sent_s["sentiment"] == "NEGATIVE").sum())
-    n_neu    = int((sent_s["sentiment"] == "NEUTRAL").sum())
-    avg_sent = float(sent_s["sentiment_score"].mean()) if len(sent_s) > 0 else 0.0
-    n_posts  = len(ext_s)
-    n_actors = ext_s["username"].nunique()
+    n_videos = len(ext_s)
+    n_channels = ext_s["channel_title"].nunique()
+    total_views = int(ext_s["view_count"].sum())
+
+    n_pos = n_neg = n_neu = 0
+    avg_sent = 0.5
+    has_sent_period = has_sent and len(sent_s) > 0
+    if has_sent_period:
+        n_pos = int((sent_s["sentiment"] == "POSITIVE").sum())
+        n_neg = int((sent_s["sentiment"] == "NEGATIVE").sum())
+        n_neu = int((sent_s["sentiment"] == "NEUTRAL").sum())
+        avg_sent = float(sent_s["sentiment_score"].mean()) if len(sent_s) > 0 else 0.5
 
     # Monthly trend
-    ext_valid = ext_s.dropna(subset=["pub_date"]).copy()
-    ext_valid["month"] = ext_valid["pub_date"].dt.to_period("M").astype(str)
+    ext_valid = ext_s.dropna(subset=["published_at"]).copy()
+    ext_valid["month"] = ext_valid["published_at"].dt.to_period("M").astype(str)
     monthly = (
         ext_valid.groupby(["month", "position"])
         .size().unstack(fill_value=0).reset_index()
@@ -207,7 +231,7 @@ for pid in PERIOD_ORDER:
         if col not in monthly.columns:
             monthly[col] = 0
     monthly["total"] = monthly["PRO"] + monthly["KONTRA"] + monthly["NETRAL"]
-    monthly = monthly[monthly["total"] >= 2].sort_values("month").tail(36)
+    monthly = monthly[monthly["total"] >= 1].sort_values("month").tail(36)
 
     # Variable distribution
     var_pos = (
@@ -220,52 +244,44 @@ for pid in PERIOD_ORDER:
     var_pos["total"] = var_pos["PRO"] + var_pos["KONTRA"] + var_pos["NETRAL"]
     var_pos = var_pos.sort_values("total", ascending=False)
 
-    # Top actors
-    actor_stance = (
-        ext_s.groupby(["username", "position"])
+    # Top channels
+    ch_stance = (
+        ext_s.groupby(["channel_title", "position"])
         .size().unstack(fill_value=0).reset_index()
     )
     for col in ["PRO", "KONTRA", "NETRAL"]:
-        if col not in actor_stance.columns:
-            actor_stance[col] = 0
-    actor_stance["total"] = actor_stance["PRO"] + actor_stance["KONTRA"] + actor_stance["NETRAL"]
-    actor_stance = actor_stance.merge(
-        df_nodes[["username", "followers_count", "is_verified"]].drop_duplicates("username"),
-        on="username", how="left",
-    ).sort_values("total", ascending=False).head(20)
+        if col not in ch_stance.columns:
+            ch_stance[col] = 0
+    ch_stance["total"] = ch_stance["PRO"] + ch_stance["KONTRA"] + ch_stance["NETRAL"]
 
-    # Top hashtags from cleaned slice
-    htag_counts = defaultdict(int)
-    for _, row in clean_s.dropna(subset=["hashtags"]).iterrows():
-        for h in str(row["hashtags"]).split(","):
-            h = h.strip().lower()
-            if h:
-                htag_counts[h] += 1
-    top_htags = sorted(htag_counts.items(), key=lambda x: -x[1])[:25]
+    ch_views = ext_s.groupby("channel_title")["view_count"].sum().reset_index(name="total_views")
+    ch_subs  = ext_s.groupby("channel_title")["subscriber_count"].max().reset_index(name="subscribers")
+    ch_stance = ch_stance.merge(ch_views, on="channel_title", how="left")
+    ch_stance = ch_stance.merge(ch_subs, on="channel_title", how="left")
+    ch_stance = ch_stance.sort_values("total", ascending=False).head(20)
 
-    # Actor stance map for network
-    actor_stance_map = {}
-    for _, r in actor_stance.iterrows():
-        actor_stance_map[r["username"]] = dominant_pos({
-            "PRO": r["PRO"], "KONTRA": r["KONTRA"], "NETRAL": r["NETRAL"]
-        })
+    # Top concepts
+    concept_counts = defaultdict(int)
+    for _, row in ext_s.iterrows():
+        for c in parse_concepts(row.get("concepts", [])):
+            concept_counts[c] += 1
+    top_concepts = sorted(concept_counts.items(), key=lambda x: -x[1])[:25]
 
-    # Build mention network
-    edges = build_mention_edges(clean_s)
-    net_path = OUTDIR / f"socmed_network_ig_{pid}.html"
-    build_network_html(edges, actor_stance_map, net_path)
-    network_paths[pid] = net_path.name
+    # Channel network
+    ch_video_counts = ext_s.groupby("channel_title").size().to_dict()
+    edges, dom_map = build_channel_network(ext_s)
+    net_path = OUTDIR / f"youtube_network_yt_{pid}.html"
+    build_network_html(edges, dom_map, ch_video_counts, net_path)
 
-    # Build actor rows HTML
-    actor_rows_html = ""
-    for _, r in actor_stance.iterrows():
+    # Build channel table HTML
+    ch_rows_html = ""
+    for _, r in ch_stance.iterrows():
         dp = dominant_pos({"PRO": r["PRO"], "KONTRA": r["KONTRA"], "NETRAL": r["NETRAL"]})
-        v_badge = ' <span style="color:#ffd43b;font-size:0.7rem;">✓</span>' if r.get("is_verified") else ""
-        actor_rows_html += (
+        ch_rows_html += (
             f'<tr>'
-            f'<td><a href="https://instagram.com/{r["username"]}" target="_blank" '
-            f'style="color:{C["accent"]};text-decoration:none;">@{r["username"]}</a>{v_badge}</td>'
-            f'<td style="text-align:center;">{fmt_num(r.get("followers_count","–"))}</td>'
+            f'<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{r["channel_title"]}</td>'
+            f'<td style="text-align:center;">{fmt_num(r.get("subscribers", 0))}</td>'
+            f'<td style="text-align:center;">{fmt_num(r.get("total_views", 0))}</td>'
             f'<td style="text-align:center;">{int(r["total"])}</td>'
             f'<td style="text-align:center;color:{C["pro"]};">{int(r["PRO"])}</td>'
             f'<td style="text-align:center;color:{C["kontra"]};">{int(r["KONTRA"])}</td>'
@@ -275,8 +291,8 @@ for pid in PERIOD_ORDER:
         )
 
     period_data[pid] = {
-        "n_posts":    n_posts,
-        "n_actors":   n_actors,
+        "n_videos":   n_videos,
+        "n_channels": n_channels,
         "n_pro":      n_pro,
         "n_kontra":   n_kontra,
         "n_netral":   n_netral,
@@ -284,7 +300,9 @@ for pid in PERIOD_ORDER:
         "n_neg":      n_neg,
         "n_neu":      n_neu,
         "avg_sent":   round(avg_sent, 3),
-        "monthly":    {
+        "total_views": total_views,
+        "has_sent":   has_sent_period,
+        "monthly": {
             "labels":  monthly["month"].tolist(),
             "pro":     monthly["PRO"].tolist(),
             "kontra":  monthly["KONTRA"].tolist(),
@@ -296,50 +314,31 @@ for pid in PERIOD_ORDER:
             "kontra":  var_pos["KONTRA"].tolist(),
             "netral":  var_pos["NETRAL"].tolist(),
         },
-        "htag": {
-            "labels":  [h for h, _ in top_htags],
-            "counts":  [c for _, c in top_htags],
+        "concepts": {
+            "labels":  [c for c, _ in top_concepts],
+            "counts":  [n for _, n in top_concepts],
         },
-        "actor_rows": actor_rows_html,
-        "net_file":   network_paths[pid],
+        "ch_rows":    ch_rows_html,
+        "net_file":   net_path.name,
     }
-    print(f"  [{pid}] posts={n_posts}, actors={n_actors}, edges={len(edges)}")
+    print(f"  [{pid}] videos={n_videos}, channels={n_channels}, edges={len(edges)}")
 
 
-ALL_DATA_JSON = json.dumps(period_data)
+ALL_DATA_JSON = json.dumps(period_data, ensure_ascii=False)
 
-# ── Buzzer table (static) ─────────────────────────────────────────────────────
-df_buz_sorted = df_buz.sort_values("buzzer_score", ascending=False).head(15)
-buzzer_rows_html = ""
-for _, r in df_buz_sorted.iterrows():
-    score = int(r["buzzer_score"])
-    color = C["kontra"] if score >= 2 else ("#ffd43b" if score == 1 else C["txt2"])
-    flags = str(r.get("buzzer_flags", "")).replace("{", "").replace("}", "").replace("'", "")
-    buzzer_rows_html += (
-        f'<tr>'
-        f'<td><a href="https://instagram.com/{r["username"]}" target="_blank" '
-        f'style="color:{C["accent"]};text-decoration:none;">@{r["username"]}</a></td>'
-        f'<td style="text-align:center;">{fmt_num(r.get("followers_count","–"))}</td>'
-        f'<td style="text-align:center;">{fmt_num(r.get("following_count","–"))}</td>'
-        f'<td style="text-align:center;">{fmt_num(r.get("post_count","–"))}</td>'
-        f'<td style="text-align:center;color:{color};font-weight:700;">{score}</td>'
-        f'<td style="font-size:0.78rem;color:{C["txt2"]};">{flags[:80]}</td>'
-        f'</tr>\n'
-    )
-
-# ── Period selector HTML ──────────────────────────────────────────────────────
 period_options = "".join(
     f'<option value="{pid}">{label}</option>'
     for pid, (label, _, _) in PERIODS.items()
 )
 
-# ── Build HTML ────────────────────────────────────────────────────────────────
+sent_note = f"({sent_n}/{sent_total} video terskor)" if has_sent else "(belum tersedia)"
+
 HTML = f"""<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DNA — Instagram Kebijakan Nuklir Indonesia</title>
+<title>DNA — YouTube Kebijakan Nuklir Indonesia</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
@@ -384,6 +383,7 @@ canvas{{max-height:320px}}
 .net-legend{{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:0.82rem}}
 .leg{{display:flex;align-items:center;gap:6px;color:{C['txt2']}}}
 .dot{{width:11px;height:11px;border-radius:50%;flex-shrink:0}}
+.note{{color:{C['txt2']};font-size:0.8rem;margin-top:6px;font-style:italic}}
 @media(max-width:900px){{
   .chart-row{{grid-template-columns:1fr}}
   .stats-row{{grid-template-columns:repeat(2,1fr)}}
@@ -394,14 +394,14 @@ canvas{{max-height:320px}}
 <body>
 
 <div class="header">
-  <h1>Discourse Network Analysis — Instagram</h1>
-  <p>Kebijakan Energi Nuklir Indonesia · Analisis Media Sosial Instagram</p>
+  <h1>Discourse Network Analysis — YouTube</h1>
+  <p>Kebijakan Energi Nuklir Indonesia · Analisis Konten YouTube</p>
 </div>
 
 <nav class="tab-nav">
   <a href="report_dna.html" class="tab-link">BERITA NASIONAL</a>
-  <a href="socmed_report.html" class="tab-link tab-active">INSTAGRAM</a>
-  <a href="youtube_report.html" class="tab-link">YOUTUBE</a>
+  <a href="socmed_report.html" class="tab-link">INSTAGRAM</a>
+  <a href="youtube_report.html" class="tab-link tab-active">YOUTUBE</a>
 </nav>
 
 <div class="container">
@@ -414,75 +414,67 @@ canvas{{max-height:320px}}
   <span id="periodSummary" style="color:{C['txt2']};font-size:0.88rem;"></span>
 </div>
 
-<!-- Stats row -->
 <div class="stats-row">
-  <div class="stat-card"><div class="number" id="statPosts">–</div><div class="slabel">Total Post</div></div>
-  <div class="stat-card"><div class="number" id="statActors">–</div><div class="slabel">Akun Unik</div></div>
+  <div class="stat-card"><div class="number" id="statVideos">–</div><div class="slabel">Total Video</div></div>
+  <div class="stat-card"><div class="number" id="statChannels">–</div><div class="slabel">Channel Unik</div></div>
   <div class="stat-card"><div class="number" id="statPro" style="color:{C['pro']};"></div><div class="slabel">PRO Nuklir</div></div>
   <div class="stat-card"><div class="number" id="statKontra" style="color:{C['kontra']};"></div><div class="slabel">KONTRA Nuklir</div></div>
   <div class="stat-card"><div class="number" id="statNetral" style="color:{C['netral']};"></div><div class="slabel">NETRAL</div></div>
+  <div class="stat-card"><div class="number" id="statViews">–</div><div class="slabel">Total Views</div></div>
   <div class="stat-card"><div class="number" id="statPos" style="color:{C['info']};"></div><div class="slabel">Sentimen Positif</div></div>
-  <div class="stat-card"><div class="number" id="statNeg" style="color:{C['kontra']};"></div><div class="slabel">Sentimen Negatif</div></div>
   <div class="stat-card"><div class="number" id="statSent">–</div><div class="slabel">Rata-rata Skor Sentimen</div></div>
 </div>
 
-<!-- Stance + Sentiment donuts -->
 <div class="section">
-  <h2>Distribusi Sikap &amp; Sentimen</h2>
+  <h2>Distribusi Sikap &amp; Sentimen <span class="note">{sent_note}</span></h2>
   <div class="chart-row">
     <div><canvas id="chartStance"></canvas></div>
     <div><canvas id="chartSentiment"></canvas></div>
   </div>
 </div>
 
-<!-- Monthly trend -->
 <div class="section">
   <h2>Tren Sikap per Bulan</h2>
   <canvas id="chartMonthly" style="max-height:280px;"></canvas>
 </div>
 
-<!-- Variable distribution -->
 <div class="section">
   <h2>Distribusi Variabel Diskursus</h2>
-  <canvas id="chartVar" style="max-height:300px;"></canvas>
+  <canvas id="chartVar" style="max-height:340px;"></canvas>
 </div>
 
-<!-- Top accounts -->
 <div class="section">
-  <h2>Top 20 Akun berdasarkan Jumlah Post</h2>
+  <h2>Top 20 Channel berdasarkan Jumlah Video</h2>
   <table class="tbl">
     <thead><tr>
-      <th>Akun</th><th>Followers</th><th>Post</th>
+      <th>Channel</th><th>Subscribers</th><th>Total Views</th><th>Video</th>
       <th style="color:{C['pro']};">PRO</th>
       <th style="color:{C['kontra']};">KONTRA</th>
       <th style="color:{C['netral']};">NETRAL</th>
       <th>Dominan</th>
     </tr></thead>
-    <tbody id="actorTableBody"></tbody>
+    <tbody id="chTableBody"></tbody>
   </table>
 </div>
 
-<!-- Top hashtags -->
 <div class="section">
-  <h2>Top 25 Hashtag</h2>
-  <canvas id="chartHashtag" style="max-height:400px;"></canvas>
+  <h2>Top 25 Konsep (Ekstraksi LLM)</h2>
+  <canvas id="chartConcepts" style="max-height:500px;"></canvas>
 </div>
 
-<!-- SNA Mention Network -->
 <div class="section">
-  <h2>Social Network Analysis — Jaringan Mention</h2>
+  <h2>Social Network Analysis — Jaringan Channel</h2>
   <div class="net-legend">
     <span class="leg"><span class="dot" style="background:{C['pro']};"></span>PRO</span>
     <span class="leg"><span class="dot" style="background:{C['kontra']};"></span>KONTRA</span>
     <span class="leg"><span class="dot" style="background:{C['netral']};"></span>NETRAL</span>
-    <span style="color:{C['txt2']};font-size:0.82rem;">Node = akun Instagram · Edge = mention · Ukuran edge = frekuensi</span>
+    <span style="color:{C['txt2']};font-size:0.82rem;">Node = channel · Edge = topik/variabel yang sama dibahas · Ukuran = jumlah video</span>
   </div>
-  <iframe id="networkFrame" src="socmed_network_ig_all.html"
+  <iframe id="networkFrame" src="youtube_network_yt_all.html"
     style="width:100%;height:620px;border:none;border-radius:8px;background:{C['bg']};"></iframe>
 </div>
 
-
-</div><!-- /container -->
+</div>
 
 <script>
 const ALL_DATA = {ALL_DATA_JSON};
@@ -491,6 +483,7 @@ const PRO_C  = "{C['pro']}";
 const KON_C  = "{C['kontra']}";
 const NET_C  = "{C['netral']}";
 const POS_C  = "{C['info']}";
+const ACC_C  = "{C['accent']}";
 const TXT1   = "{C['txt1']}";
 const TXT2   = "{C['txt2']}";
 const BORDER = "{C['border']}";
@@ -498,7 +491,7 @@ const TICK   = {{ color: TXT2, font: {{ size: 11 }} }};
 const GRID   = {{ color: BORDER }};
 const LEG    = {{ labels: {{ color: TXT1 }}, position: 'bottom' }};
 
-let chartStance, chartSentiment, chartMonthly, chartVar, chartHashtag;
+let chartStance, chartSentiment, chartMonthly, chartVar, chartConcepts;
 
 function makeCharts() {{
   chartStance = new Chart(document.getElementById('chartStance'), {{
@@ -523,7 +516,7 @@ function makeCharts() {{
     options: {{
       plugins: {{
         legend: LEG,
-        title: {{ display: true, text: 'Distribusi Sentimen Caption', color: TXT1, font: {{ size: 14 }} }},
+        title: {{ display: true, text: 'Distribusi Sentimen Video', color: TXT1, font: {{ size: 14 }} }},
       }},
       cutout: '62%',
     }},
@@ -563,10 +556,10 @@ function makeCharts() {{
     }},
   }});
 
-  chartHashtag = new Chart(document.getElementById('chartHashtag'), {{
+  chartConcepts = new Chart(document.getElementById('chartConcepts'), {{
     type: 'bar',
     data: {{ labels: [], datasets: [{{
-      label: 'Post', data: [], backgroundColor: "{C['accent']}", borderRadius: 4
+      label: 'Video', data: [], backgroundColor: ACC_C, borderRadius: 4
     }}] }},
     options: {{
       indexAxis: 'y', responsive: true,
@@ -579,49 +572,47 @@ function makeCharts() {{
   }});
 }}
 
+function fmtNum(n) {{
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toString();
+}}
+
 function updatePeriod(pid) {{
   var d = ALL_DATA[pid];
   if (!d) return;
 
-  // stats
-  document.getElementById('statPosts').textContent   = d.n_posts.toLocaleString();
-  document.getElementById('statActors').textContent  = d.n_actors.toLocaleString();
-  document.getElementById('statPro').textContent     = d.n_pro;
-  document.getElementById('statKontra').textContent  = d.n_kontra;
-  document.getElementById('statNetral').textContent  = d.n_netral;
-  document.getElementById('statPos').textContent     = d.n_pos;
-  document.getElementById('statNeg').textContent     = d.n_neg;
-  document.getElementById('statSent').textContent    = d.avg_sent.toFixed(2);
+  document.getElementById('statVideos').textContent   = d.n_videos.toLocaleString();
+  document.getElementById('statChannels').textContent = d.n_channels.toLocaleString();
+  document.getElementById('statPro').textContent      = d.n_pro;
+  document.getElementById('statKontra').textContent   = d.n_kontra;
+  document.getElementById('statNetral').textContent   = d.n_netral;
+  document.getElementById('statViews').textContent    = fmtNum(d.total_views);
+  document.getElementById('statPos').textContent      = d.n_pos;
+  document.getElementById('statSent').textContent     = d.avg_sent.toFixed(2);
 
-  // donuts
-  chartStance.data.datasets[0].data   = [d.n_pro, d.n_kontra, d.n_netral];
+  chartStance.data.datasets[0].data    = [d.n_pro, d.n_kontra, d.n_netral];
   chartSentiment.data.datasets[0].data = [d.n_pos, d.n_neg, d.n_neu];
   chartStance.update();
   chartSentiment.update();
 
-  // monthly
-  chartMonthly.data.labels                  = d.monthly.labels;
-  chartMonthly.data.datasets[0].data        = d.monthly.pro;
-  chartMonthly.data.datasets[1].data        = d.monthly.kontra;
-  chartMonthly.data.datasets[2].data        = d.monthly.netral;
+  chartMonthly.data.labels           = d.monthly.labels;
+  chartMonthly.data.datasets[0].data = d.monthly.pro;
+  chartMonthly.data.datasets[1].data = d.monthly.kontra;
+  chartMonthly.data.datasets[2].data = d.monthly.netral;
   chartMonthly.update();
 
-  // variable
-  chartVar.data.labels               = d.var.labels;
-  chartVar.data.datasets[0].data     = d.var.pro;
-  chartVar.data.datasets[1].data     = d.var.kontra;
-  chartVar.data.datasets[2].data     = d.var.netral;
+  chartVar.data.labels           = d.var.labels;
+  chartVar.data.datasets[0].data = d.var.pro;
+  chartVar.data.datasets[1].data = d.var.kontra;
+  chartVar.data.datasets[2].data = d.var.netral;
   chartVar.update();
 
-  // hashtag
-  chartHashtag.data.labels           = d.htag.labels;
-  chartHashtag.data.datasets[0].data = d.htag.counts;
-  chartHashtag.update();
+  chartConcepts.data.labels           = d.concepts.labels;
+  chartConcepts.data.datasets[0].data = d.concepts.counts;
+  chartConcepts.update();
 
-  // actor table
-  document.getElementById('actorTableBody').innerHTML = d.actor_rows;
-
-  // network iframe
+  document.getElementById('chTableBody').innerHTML = d.ch_rows;
   document.getElementById('networkFrame').src = d.net_file;
 }}
 
@@ -634,4 +625,4 @@ updatePeriod('all');
 OUTPUT.write_text(HTML, encoding="utf-8")
 print(f"\n[DONE] {OUTPUT}")
 for pid, d in period_data.items():
-    print(f"  {pid}: posts={d['n_posts']}, actors={d['n_actors']}")
+    print(f"  {pid}: videos={d['n_videos']}, channels={d['n_channels']}")
