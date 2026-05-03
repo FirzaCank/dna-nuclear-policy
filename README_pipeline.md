@@ -1,182 +1,196 @@
-# Discourse Network Analysis (DNA) Pipeline
-## Case Study: Indonesia Nuclear Energy Policy — RUU EBET
+# DNA Pipeline — Technical Reference
 
-A 6-step pipeline that extracts actor-stance-concept networks from Indonesian news articles using LLM-based extraction, then generates an interactive HTML report.
-
----
-
-## Pipeline Overview
-
-```
-input/9_ready_to_parse.csv
-        │
-        ▼
-01_preprocess.py      → output/cleaned.csv
-        │
-        ▼
-02_extract_llm.py     → output/extracted_raw.jsonl   (resumable)
-        │
-        ▼
-03_build_edgelist.py  → output/01_flat_statements.csv
-                        output/02_nodes_actors.csv
-                        output/03_nodes_concepts.csv
-                        output/04_edges_actor_concept.csv
-                        output/05b_edges_actor_variable.csv
-                        output/05c_edges_actor_keyword.csv
-                        output/06a_summary_by_variable.csv
-        │
-        ▼
-04_sentiment.py       → output/07_sentiment_scored.csv
-        │
-        ▼
-05_visualize_html.py  → output/report_dna.html        (self-contained, shareable)
-        │
-        ▼
-06_export_gephi.py    → output/gephi/                 (Gephi-ready CSVs)
-```
+Multi-platform Discourse Network Analysis pipeline for Indonesia's nuclear energy policy discourse.
 
 ---
 
-## Folder Structure
-
-```
-Claude_1/
-├── input/
-│   └── 9_ready_to_parse.csv     ← raw scraped articles (not committed)
-├── output/                       ← all generated files (not committed)
-├── log/                          ← run logs (not committed)
-├── venv/                         ← Python virtual environment
-├── 01_preprocess.py
-├── 02_extract_llm.py
-├── 03_build_edgelist.py
-├── 04_sentiment.py
-├── 05_visualize_html.py
-├── 06_export_gephi.py
-├── .env                          ← API keys (not committed)
-└── README_pipeline.md
-```
-
----
-
-## Setup
+## Quick Start
 
 ```bash
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate          # macOS/Linux
-# venv\Scripts\activate           # Windows
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium
 
-# Install dependencies
-pip install pandas tqdm python-dotenv pyvis google-generativeai
+cp .env.example .env   # fill in API keys
 ```
 
-Create a `.env` file with your API key:
+`.env` required keys:
 ```
-API_KEY=your_gemini_api_key_here
+API_KEY=your_gemini_api_key        # https://aistudio.google.com
+YT_API_KEY=your_youtube_data_api   # https://console.cloud.google.com
 ```
-
-Get a free Gemini API key at: https://aistudio.google.com
 
 ---
 
-## Running the Pipeline
+## Pipelines
 
-Run steps in order:
+### News Articles (`pipelines/news/`)
+
+```
+data/raw/news/9_ready_to_parse.csv
+        │
+        ▼
+01_preprocess.py       → data/processed/news/cleaned.csv
+        │
+        ▼
+02_extract_llm.py      → data/processed/news/extracted_raw.jsonl      [resumable]
+        │
+        ▼
+03_build_edgelist.py   → data/processed/news/01_flat_statements.csv
+                          data/processed/news/02_nodes_actors.csv
+                          data/processed/news/03_nodes_concepts.csv
+                          data/processed/news/04_edges_actor_concept.csv
+                          data/processed/news/05b_edges_actor_variable.csv
+                          data/processed/news/06a_summary_by_variable.csv
+        │
+        ▼
+04_sentiment.py        → data/processed/news/07_sentiment_scored.csv
+        │
+        ▼
+05_visualize_html.py   → data/processed/news/report_dna.html
+        │
+        ▼
+06_export_gephi.py     → data/processed/news/gephi/                   [optional]
+07_export_analysis_csvs.py
+08_build_report_docx.py
+```
+
+Run:
+```bash
+python pipelines/news/01_preprocess.py
+python pipelines/news/02_extract_llm.py      # resumable
+python pipelines/news/03_build_edgelist.py
+python pipelines/news/04_sentiment.py
+python pipelines/news/05_visualize_html.py
+```
+
+---
+
+### Instagram (`pipelines/socmed/instagram/`)
+
+```
+data/raw/instagram/*.csv
+        │
+        ▼
+01_merge.py            → data/processed/instagram/socmed_merged.csv
+        │
+        ▼
+02_clean.py            → data/processed/instagram/socmed_cleaned.csv
+        │
+        ▼
+03_extract_llm.py      → data/processed/instagram/socmed_extracted_raw.jsonl   [resumable]
+        │
+        ▼
+04_sentiment.py        → data/processed/instagram/socmed_sentiment.csv
+        │
+        ▼
+05_sna_network.py      → data/processed/instagram/socmed_edges_mention.csv
+06_cohashtag.py        → data/processed/instagram/socmed_edges_hashtag.csv
+07_buzzer.py           → data/processed/instagram/socmed_buzzer_scores.csv
+        │
+        ▼
+08_visualize.py        → data/processed/instagram/socmed_report.html
+```
+
+---
+
+### YouTube (`pipelines/socmed/youtube/`)
+
+```
+data/raw/youtube/*.csv
+        │
+        ▼
+01_merge.py            → data/processed/youtube/youtube_merged.csv
+02_get_channels.py     → data/processed/youtube/youtube_channel_urls.csv
+03_fetch_metadata.py   → data/processed/youtube/youtube_metadata.csv       [YouTube Data API v3]
+        │
+        ▼
+04_extract_llm.py      → data/processed/youtube/youtube_extracted_raw.jsonl  [resumable]
+        │
+        ▼
+05_sentiment.py        → data/processed/youtube/youtube_sentiment.csv
+        │
+        ▼
+06_build_edgelist.py   → data/processed/youtube/yt_*.csv
+        │
+        ▼
+07_visualize.py        → data/processed/youtube/youtube_report.html
+```
+
+---
+
+### Facebook (`pipelines/socmed/facebook/`)
+
+Requires: `data/raw/facebook/www.facebook.com_cookies.txt` (Netscape format, exported from browser)
+
+```
+data/raw/variable_keywords.csv      [18 keywords]
+        │
+        ▼
+01_scrape.py           → data/processed/facebook/facebook_raw.csv          [Playwright + cookies]
+        │
+        ▼
+02_clean.py            → data/processed/facebook/facebook_cleaned.csv
+        │
+        ▼
+03_extract_llm.py      → data/processed/facebook/facebook_extracted_raw.jsonl  [resumable]
+        │
+        ▼
+04_sentiment.py        → data/processed/facebook/facebook_sentiment.csv
+        │
+        ▼
+05_visualize.py        → data/processed/facebook/facebook_report.html
+```
+
+---
+
+## Publishing to GitHub Pages
+
+After running any visualize script, copy outputs to `docs/`:
 
 ```bash
-# Step 1: Clean scraped articles
-python 01_preprocess.py
-
-# Step 2: LLM extraction (actor / statement / position / concept)
-# Resumable — safe to stop and restart, picks up from last processed article
-python 02_extract_llm.py
-
-# Step 3: Build node and edge lists for DNA/SNA
-python 03_build_edgelist.py
-
-# Step 4: Sentiment analysis per statement
-python 04_sentiment.py
-
-# Step 5: Generate interactive HTML report (single self-contained file)
-python 05_visualize_html.py
-
-# Step 6: (Optional) Export Gephi-ready CSV files
-python 06_export_gephi.py
+cp data/processed/news/report_dna.html data/processed/news/network_dna_*.html docs/
+cp data/processed/instagram/socmed_report.html data/processed/instagram/socmed_network_*.html docs/
+cp data/processed/youtube/youtube_report.html data/processed/youtube/youtube_network_*.html docs/
+cp data/processed/facebook/facebook_report.html data/processed/facebook/facebook_network_*.html docs/
+git add docs/ && git commit -m "update dashboards" && git push
 ```
 
----
-
-## Output: HTML Report
-
-`output/report_dna.html` is a **single self-contained file** that includes:
-
-| Section | Description |
-|---|---|
-| Summary stats | Total statements, unique actors, concepts, % PRO/KONTRA |
-| DNA Network | Interactive bipartite graph: Institution → Keyword/Topic |
-| Position by variable | Stacked bar: PRO / KONTRA / NETRAL per analysis dimension |
-| Top 15 actors | Horizontal bar by statement count, colored by dominant position |
-| Sentiment donut | Overall sentiment distribution |
-| Sentiment × Position | Cross-tabulation chart |
-| Article trend | Stacked bar: articles per month by position |
-| Actor type breakdown | Donut: INDIVIDU / INSTITUSI / PAKAR / FRAKSI / MEDIA |
-| Top 10 KONTRA actors | With institution affiliation in parentheses |
-| Statements per variable | Horizontal bar per analysis dimension |
-
-The network nodes are colored:
-- 🟢 **Green** = PRO nuclear institution
-- 🔴 **Red** = KONTRA nuclear institution
-- ⚪ **Grey** = NETRAL institution
-- 🟠 **Orange box** = Keyword/Topic node
-
-**Sharing:** The HTML file is fully self-contained. Share the single file — no server or dependencies needed. Works in any modern browser.
-
----
-
-## Network Configuration
-
-Key settings in `05_visualize_html.py`:
-
-```python
-NETWORK_MODE   = "keyword"   # "keyword" (recommended) or "variable"
-MIN_STATEMENTS = 3           # minimum statements to include an actor
-```
-
-Institution mapping uses `INST_KEYWORDS` (case-insensitive keyword → institution name) and `INST_SHORT` (full name → abbreviation). Actors that cannot be mapped to an institution are excluded from the graph.
+Live dashboards: **https://firzacank.github.io/dna-nuclear-policy**
 
 ---
 
 ## LLM Configuration
 
-Edit `02_extract_llm.py`:
+All LLM scripts use Gemini 2.5 Flash with `thinking_budget=0` for speed.
 
 ```python
-LLM_PROVIDER = "gemini"
-API_KEY       = os.getenv("API_KEY")   # from .env
-MODELS = {
-    "gemini": "gemini-2.5-flash",      # recommended
-}
-TEST_MODE = False   # set True to process only 5 articles for testing
-SLEEP_SEC = 1.2     # delay between requests (adjust for rate limits)
+MODEL       = "gemini-2.5-flash"
+SLEEP_SEC   = 1.2     # between requests
+MAX_RETRIES = 3
+TEST_MODE   = False   # set True to process 5 rows only
 ```
 
-### Processing Time Estimate (735 articles)
-
-| Provider | Estimated Time | Notes |
-|---|---|---|
-| Gemini Flash | ~30–45 min | 1.2s/req, free tier |
-| Groq (llama-3.1-70b) | ~25–35 min | 6K req/day free |
-| Ollama (7B local) | ~2–4 hrs | depends on hardware |
+All LLM scripts are **resumable** — checkpointed to JSONL/CSV every 50 records. Safe to stop and restart.
 
 ---
 
-## Gephi Import (Step 6)
+## Political Era Definitions
 
-After running `06_export_gephi.py`:
+| Period | Date Range |
+|---|---|
+| Jokowi I | 2014-10-20 → 2019-10-20 |
+| Jokowi II | 2019-10-20 → 2024-10-20 |
+| Prabowo | 2024-10-20 → present |
 
-1. Open Gephi → **File > Import Spreadsheet**
-2. Import `output/gephi/edges_actor_concept_gephi.csv` as **Edge Table**
-3. Gephi auto-creates nodes from Source/Target
-4. *(Optional)* Import `output/gephi/all_nodes_gephi.csv` as **Node Table** for attributes
-5. **Layout:** ForceAtlas2 or Fruchterman-Reingold
-6. **Appearance:** Color by `dominant_pos`, size by `n_statements`
+---
+
+## Gephi Export (News)
+
+After `pipelines/news/06_export_gephi.py`:
+
+1. Gephi → **File > Import Spreadsheet**
+2. Import `edges_actor_concept_gephi.csv` as **Edge Table**
+3. *(Optional)* import `all_nodes_gephi.csv` as **Node Table**
+4. Layout: ForceAtlas2 or Fruchterman-Reingold
+5. Appearance: color by `dominant_pos`, size by `n_statements`

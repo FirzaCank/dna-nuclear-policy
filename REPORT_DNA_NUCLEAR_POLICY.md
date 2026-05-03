@@ -1,9 +1,13 @@
 # Discourse Network Analysis: Indonesia's Nuclear Energy Policy
-## Strategic Intelligence Report — News Media Phase
+## Strategic Intelligence Report — Multi-Platform Analysis
 **Prepared by:** Data Analytics Team
-**Date:** April 23, 2026
-**Status:** Phase 1 Complete (News Media) | Phase 2 Pending (Social Media)
-**Live Dashboard:** https://FirzaCank.github.io/dna-nuclear-policy
+**Date:** May 4, 2026
+**Status:** Phase 1 Complete (News Media) | Phase 2 Complete (Instagram, YouTube, Facebook)
+**Live Dashboards:**
+- [Berita Nasional](https://firzacank.github.io/dna-nuclear-policy/report_dna.html)
+- [Instagram](https://firzacank.github.io/dna-nuclear-policy/socmed_report.html) — 1,769 posts
+- [YouTube](https://firzacank.github.io/dna-nuclear-policy/youtube_report.html) — 559 videos
+- [Facebook](https://firzacank.github.io/dna-nuclear-policy/facebook_report.html) — 931 posts
 
 ---
 
@@ -40,14 +44,16 @@ This report serves as a **stakeholder intelligence tool** to:
 
 ## 1.3 Scope of This Report
 
-This is **Phase 1** of a two-phase analysis:
+This is a two-phase multi-platform analysis:
 
-| Phase | Data Source | Status |
-|-------|------------|--------|
-| Phase 1 | Online news media (national + specialized) | ✅ Complete |
-| Phase 2 | Social media (Twitter/X, Instagram, YouTube comments) | 🔄 Pending — data collection in progress |
+| Phase | Data Source | Volume | Status |
+|-------|------------|--------|--------|
+| Phase 1 | Online news media (national + specialized) | 719 articles | ✅ Complete |
+| Phase 2a | Instagram | 1,769 posts | ✅ Complete |
+| Phase 2b | YouTube | 559 videos | ✅ Complete |
+| Phase 2c | Facebook | 931 posts | ✅ Complete |
 
-The analysis covers **719 online news articles** spanning **December 2010 to April 2026**, with a heavy concentration from 2020 onward when nuclear policy debate intensified significantly in Indonesian public discourse.
+Phase 1 covers **719 online news articles** spanning **December 2010 to April 2026**. Phase 2 covers social media posts collected via keyword search across 18 policy variables, analyzed with LLM-based stance extraction (PRO/KONTRA/NETRAL) and sentiment scoring.
 
 ---
 
