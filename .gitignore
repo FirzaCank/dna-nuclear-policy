@@ -2,7 +2,7 @@
 output/
 *.csv
 *.html
-!docs/index.html
+!docs/*.html
 *.jsonl
 *.png
 *.jpg

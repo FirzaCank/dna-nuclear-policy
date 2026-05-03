@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DNA — YouTube Kebijakan Nuklir Indonesia</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f0f1a;color:#e8e8e8;line-height:1.5}
+a{color:inherit}
+.tab-nav{background:#161622;border-bottom:2px solid #2e3250;display:flex;gap:2px;padding:0 48px}
+.tab-link{
+  color:#c9d1d9;padding:11px 22px;text-decoration:none;
+  border-bottom:3px solid transparent;font-size:0.9rem;font-weight:700;
+  letter-spacing:0.5px;margin-bottom:-2px;transition:color .15s;display:inline-block;
+}
+.tab-link:hover{color:#e8e8e8}
+.tab-active{color:#b197fc;border-bottom-color:#b197fc}
+.header{background:linear-gradient(135deg,#1a237e,#311b92);padding:28px 48px}
+.header h1{font-size:1.85rem;color:#fff;letter-spacing:-0.5px}
+.header p{color:#c9d1d9;margin-top:6px;font-size:0.95rem}
+.container{max-width:1400px;margin:0 auto;padding:28px 48px}
+.period-bar{
+  display:flex;align-items:center;gap:14px;
+  background:#1e1e2e;border:1px solid #2e3250;
+  border-radius:12px;padding:14px 20px;margin-bottom:28px;flex-wrap:wrap;
+}
+.period-bar label{font-size:0.88rem;color:#c9d1d9;font-weight:600;white-space:nowrap}
+.period-select{
+  background:#16213e;color:#e8e8e8;border:2px solid #b197fc;
+  border-radius:8px;padding:8px 14px;font-size:0.95rem;cursor:pointer;
+  font-family:inherit;min-width:220px;outline-offset:2px;
+}
+.period-select:focus{outline:3px solid #b197fc}
+.stats-row{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:#1e1e2e;border-radius:12px;padding:18px 12px;text-align:center;border:1px solid #2e3250}
+.stat-card .number{font-size:1.9rem;font-weight:700;color:#b197fc}
+.stat-card .slabel{font-size:0.78rem;color:#c9d1d9;margin-top:5px;line-height:1.3}
+.section{background:#1e1e2e;border-radius:12px;padding:22px;margin-bottom:22px;border:1px solid #2e3250}
+.section h2{font-size:1.1rem;color:#d4a6f7;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #2e3250;font-weight:600}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+canvas{max-height:320px}
+.tbl{width:100%;border-collapse:collapse;font-size:0.88rem}
+.tbl th{color:#c9d1d9;font-weight:600;padding:8px 12px;border-bottom:1px solid #2e3250;text-align:left}
+.tbl td{padding:7px 12px;border-bottom:1px solid #2e325040;color:#e8e8e8}
+.tbl tr:hover td{background:#16213e}
+.net-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:0.82rem}
+.leg{display:flex;align-items:center;gap:6px;color:#c9d1d9}
+.dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.note{color:#c9d1d9;font-size:0.8rem;margin-top:6px;font-style:italic}
+@media(max-width:900px){
+  .chart-row{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .container,.header,.tab-nav{padding:16px 20px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Discourse Network Analysis — YouTube</h1>
+  <p>Kebijakan Energi Nuklir Indonesia · Analisis Konten YouTube</p>
+</div>
+
+<nav class="tab-nav">
+  <a href="report_dna.html" class="tab-link">BERITA NASIONAL</a>
+  <a href="socmed_report.html" class="tab-link">INSTAGRAM</a>
+  <a href="youtube_report.html" class="tab-link tab-active">YOUTUBE</a>
+</nav>
+
+<div class="container">
+
+<div class="period-bar">
+  <label>Pilih Periode Pemerintahan:</label>
+  <select class="period-select" id="periodSelect" onchange="updatePeriod(this.value)">
+    <option value="all">Semua Periode</option><option value="jokowi1">Jokowi Periode 1</option><option value="jokowi2">Jokowi Periode 2</option><option value="prabowo">Prabowo</option>
+  </select>
+  <span id="periodSummary" style="color:#c9d1d9;font-size:0.88rem;"></span>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><div class="number" id="statVideos">–</div><div class="slabel">Total Video</div></div>
+  <div class="stat-card"><div class="number" id="statChannels">–</div><div class="slabel">Channel Unik</div></div>
+  <div class="stat-card"><div class="number" id="statPro" style="color:#69db7c;"></div><div class="slabel">PRO Nuklir</div></div>
+  <div class="stat-card"><div class="number" id="statKontra" style="color:#ff6b6b;"></div><div class="slabel">KONTRA Nuklir</div></div>
+  <div class="stat-card"><div class="number" id="statNetral" style="color:#ced4da;"></div><div class="slabel">NETRAL</div></div>
+  <div class="stat-card"><div class="number" id="statViews">–</div><div class="slabel">Total Views</div></div>
+  <div class="stat-card"><div class="number" id="statPos" style="color:#4dabf7;"></div><div class="slabel">Sentimen Positif</div></div>
+  <div class="stat-card"><div class="number" id="statSent">–</div><div class="slabel">Rata-rata Skor Sentimen</div></div>
+</div>
+
+<div class="section">
+  <h2>Distribusi Sikap &amp; Sentimen <span class="note">(559/559 video terskor)</span></h2>
+  <div class="chart-row">
+    <div><canvas id="chartStance"></canvas></div>
+    <div><canvas id="chartSentiment"></canvas></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Tren Sikap per Bulan</h2>
+  <canvas id="chartMonthly" style="max-height:280px;"></canvas>
+</div>
+
+<div class="section">
+  <h2>Distribusi Variabel Diskursus</h2>
+  <canvas id="chartVar" style="max-height:340px;"></canvas>
+</div>
+
+<div class="section">
+  <h2>Top 20 Channel berdasarkan Jumlah Video</h2>
+  <table class="tbl">
+    <thead><tr>
+      <th>Channel</th><th>Subscribers</th><th>Total Views</th><th>Video</th>
+      <th style="color:#69db7c;">PRO</th>
+      <th style="color:#ff6b6b;">KONTRA</th>
+      <th style="color:#ced4da;">NETRAL</th>
+      <th>Dominan</th>
+    </tr></thead>
+    <tbody id="chTableBody"></tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Top 25 Konsep (Ekstraksi LLM)</h2>
+  <canvas id="chartConcepts" style="max-height:500px;"></canvas>
+</div>
+
+<div class="section">
+  <h2>Social Network Analysis — Jaringan Channel</h2>
+  <div class="net-legend">
+    <span class="leg"><span class="dot" style="background:#69db7c;"></span>PRO</span>
+    <span class="leg"><span class="dot" style="background:#ff6b6b;"></span>KONTRA</span>
+    <span class="leg"><span class="dot" style="background:#ced4da;"></span>NETRAL</span>
+    <span style="color:#c9d1d9;font-size:0.82rem;">Node = channel · Edge = topik/variabel yang sama dibahas · Ukuran = jumlah video</span>
+  </div>
+  <iframe id="networkFrame" src="youtube_network_yt_all.html"
+    style="width:100%;height:620px;border:none;border-radius:8px;background:#0f0f1a;"></iframe>
+</div>
+
+</div>
+
+<script>
+const ALL_DATA = {"all": {"n_videos": 559, "n_channels": 210, "n_pro": 17, "n_kontra": 16, "n_netral": 526, "n_pos": 259, "n_neg": 119, "n_neu": 181, "avg_sent": 0.591, "total_views": 3299610, "has_sent": true, "monthly": {"labels": ["2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-06", "2023-11", "2023-12", "2024-03", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"], "pro": [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 2, 1, 0, 0], "kontra": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3, 4, 3, 2, 0, 1, 0, 0, 0], "netral": [1, 2, 1, 1, 4, 4, 3, 0, 1, 2, 1, 1, 8, 5, 16, 17, 6, 8, 4, 7, 22, 30, 11, 25, 26, 35, 16, 29, 61, 21, 23, 16, 41, 28, 37, 2]}, "var": {"labels": ["Transisi Energi & NZE", "Keamanan Nasional & Kedaulatan", "Dinamika Pembahasan DIM", "Periferalisasi & Hak Masyarakat", "Intervensi & Pembiayaan", "Tidak Diketahui", "Ideologi & Integritas Data"], "pro": [4, 6, 4, 1, 0, 1, 1], "kontra": [4, 8, 1, 3, 0, 0, 0], "netral": [358, 101, 51, 9, 6, 1, 0]}, "concepts": {"labels": ["transisi energi", "dekarbonisasi", "energi terbarukan", "dekarbonisasi industri", "ruu ebet", "net zero emission", "industri hijau", "transisi energi bersih", "cesium-137", "net zero emission 2060", "energi bersih", "energi baru terbarukan", "emisi karbon", "pembangunan ekonomi berkelanjutan", "ketahanan energi", "kawasan industri cikande", "dekontaminasi", "power wheeling", "transisi energi terbarukan", "indonesia emas 2045", "net zero emissions", "bapeten", "transisi energi hijau", "dekarbonisasi transportasi", "ruu ebt"], "counts": [106, 80, 37, 37, 31, 20, 14, 14, 13, 13, 12, 11, 10, 10, 9, 9, 9, 8, 8, 8, 7, 7, 7, 7, 6]}, "ch_rows": "<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">IESR Indonesia</td><td style=\"text-align:center;\">5K</td><td style=\"text-align:center;\">17K</td><td style=\"text-align:center;\">35</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">2</td><td style=\"text-align:center;color:#ced4da;\">33</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">TVR PARLEMEN</td><td style=\"text-align:center;\">170K</td><td style=\"text-align:center;\">6K</td><td style=\"text-align:center;\">32</td><td style=\"text-align:center;color:#69db7c;\">1</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">31</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">CNBC Indonesia</td><td style=\"text-align:center;\">2.9M</td><td style=\"text-align:center;\">53K</td><td style=\"text-align:center;\">31</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">31</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">CNN Indonesia</td><td style=\"text-align:center;\">11.9M</td><td style=\"text-align:center;\">56K</td><td style=\"text-align:center;\">26</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">26</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">KONTAN TV</td><td style=\"text-align:center;\">367K</td><td style=\"text-align:center;\">63K</td><td style=\"text-align:center;\">23</td><td style=\"text-align:center;color:#69db7c;\">1</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">21</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">METRO TV </td><td style=\"text-align:center;\">11.2M</td><td style=\"text-align:center;\">55K</td><td style=\"text-align:center;\">23</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">2</td><td style=\"text-align:center;color:#ced4da;\">21</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Nusantara TV</td><td style=\"text-align:center;\">1.0M</td><td style=\"text-align:center;\">8K</td><td style=\"text-align:center;\">21</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">20</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">IDX CHANNEL</td><td style=\"text-align:center;\">1.1M</td><td style=\"text-align:center;\">26K</td><td style=\"text-align:center;\">12</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">12</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Tribunnews</td><td style=\"text-align:center;\">15.6M</td><td style=\"text-align:center;\">314K</td><td style=\"text-align:center;\">12</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">12</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">GARUDA TV</td><td style=\"text-align:center;\">432K</td><td style=\"text-align:center;\">34K</td><td style=\"text-align:center;\">10</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">10</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">BAPETEN (BAPETEN)</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">4K</td><td style=\"text-align:center;\">9</td><td style=\"text-align:center;color:#69db7c;\">3</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">6</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Kompas.com</td><td style=\"text-align:center;\">6.0M</td><td style=\"text-align:center;\">33K</td><td style=\"text-align:center;\">8</td><td style=\"text-align:center;color:#69db7c;\">1</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">7</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">BeritaSatu</td><td style=\"text-align:center;\">3.5M</td><td style=\"text-align:center;\">13K</td><td style=\"text-align:center;\">8</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">8</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Sin Po tv</td><td style=\"text-align:center;\">186K</td><td style=\"text-align:center;\">14K</td><td style=\"text-align:center;\">8</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">8</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Bisniscom</td><td style=\"text-align:center;\">752K</td><td style=\"text-align:center;\">43K</td><td style=\"text-align:center;\">7</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">6</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Pertamina</td><td style=\"text-align:center;\">156K</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">7</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">7</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">KOMPASTV</td><td style=\"text-align:center;\">19.9M</td><td style=\"text-align:center;\">98K</td><td style=\"text-align:center;\">6</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">6</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">PPSDM KEBTKE KESDM</td><td style=\"text-align:center;\">3K</td><td style=\"text-align:center;\">3K</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">3</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#69db7c;font-weight:700;\">PRO</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Badan Kejuruan Kimia PII (BKKPII)</td><td style=\"text-align:center;\">1K</td><td style=\"text-align:center;\">225</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">5</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">KOMPASTV JEMBER</td><td style=\"text-align:center;\">1.1M</td><td style=\"text-align:center;\">19K</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">4</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n", "net_file": "youtube_network_yt_all.html"}, "jokowi1": {"n_videos": 0, "n_channels": 0, "n_pro": 0, "n_kontra": 0, "n_netral": 0, "n_pos": 0, "n_neg": 0, "n_neu": 0, "avg_sent": 0.5, "total_views": 0, "has_sent": false, "monthly": {"labels": [], "pro": [], "kontra": [], "netral": []}, "var": {"labels": [], "pro": [], "kontra": [], "netral": []}, "concepts": {"labels": [], "counts": []}, "ch_rows": "", "net_file": "youtube_network_yt_jokowi1.html"}, "jokowi2": {"n_videos": 88, "n_channels": 45, "n_pro": 4, "n_kontra": 1, "n_netral": 83, "n_pos": 38, "n_neg": 11, "n_neu": 39, "avg_sent": 0.608, "total_views": 57942, "has_sent": true, "monthly": {"labels": ["2020-11", "2021-04", "2021-05", "2021-06", "2021-08", "2021-09", "2022-06", "2022-07", "2022-08", "2022-09", "2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-06", "2023-11", "2023-12", "2024-03", "2024-06", "2024-07", "2024-08", "2024-09", "2024-10"], "pro": [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0], "kontra": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], "netral": [1, 2, 1, 1, 2, 0, 4, 1, 2, 1, 1, 4, 4, 3, 0, 1, 2, 1, 1, 8, 5, 16, 17, 5]}, "var": {"labels": ["Dinamika Pembahasan DIM", "Transisi Energi & NZE", "Keamanan Nasional & Kedaulatan", "Ideologi & Integritas Data", "Tidak Diketahui"], "pro": [2, 0, 0, 1, 1], "kontra": [1, 0, 0, 0, 0], "netral": [43, 38, 2, 0, 0]}, "concepts": {"labels": ["ruu ebet", "dekarbonisasi", "transisi energi", "energi terbarukan", "dekarbonisasi industri", "power wheeling", "emisi karbon", "ruu ebt", "ruu energi baru dan energi terbarukan", "industri hijau", "skema power wheeling", "ekonomi hijau", "jawatankuasa dekarbonisasi kebangsaan", "ruu energi baru dan energi terbarukan (ebet)", "ruu energi baru dan terbarukan", "target bauran ebt", "liberalisasi pengelolaan listrik", "aspek formil dan materiil", "masa depan energi", "daftar inventarisasi masalah", "komisi vii dpr ri", "pembangunan rendah karbon", "dekarbonisasi ekonomi", "dekarbonisasi sektor industri", "net zero emissions"], "counts": [26, 14, 12, 7, 7, 6, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]}, "ch_rows": "<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">TVR PARLEMEN</td><td style=\"text-align:center;\">170K</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">16</td><td style=\"text-align:center;color:#69db7c;\">1</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">15</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">IESR Indonesia</td><td style=\"text-align:center;\">5K</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">6</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">6</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Pushep Hukum Energi dan Pertambangan</td><td style=\"text-align:center;\">1K</td><td style=\"text-align:center;\">1K</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">5</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">CNBC Indonesia</td><td style=\"text-align:center;\">2.9M</td><td style=\"text-align:center;\">4K</td><td style=\"text-align:center;\">4</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">4</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Astro AWANI</td><td style=\"text-align:center;\">2.1M</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">3</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">3</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">DPR RI</td><td style=\"text-align:center;\">289K</td><td style=\"text-align:center;\">1K</td><td style=\"text-align:center;\">3</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">3</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Pertamina</td><td style=\"text-align:center;\">156K</td><td style=\"text-align:center;\">806</td><td style=\"text-align:center;\">3</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">3</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Komisi VII DPR RI Channel</td><td style=\"text-align:center;\">8K</td><td style=\"text-align:center;\">4K</td><td style=\"text-align:center;\">3</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">3</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">norudin</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;\">0</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Suara Perubahan</td><td style=\"text-align:center;\">223K</td><td style=\"text-align:center;\">511</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Kompas.com</td><td style=\"text-align:center;\">6.0M</td><td style=\"text-align:center;\">11K</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">1</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">1</td><td style=\"text-align:center;color:#69db7c;font-weight:700;\">PRO</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Kementerian Kehutanan RI</td><td style=\"text-align:center;\">53K</td><td style=\"text-align:center;\">816</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Indonesian Center for Environmental Law </td><td style=\"text-align:center;\">1K</td><td style=\"text-align:center;\">508</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">METRO TV </td><td style=\"text-align:center;\">11.2M</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">IDX Channel Insight</td><td style=\"text-align:center;\">235K</td><td style=\"text-align:center;\">178</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">tvOneNews </td><td style=\"text-align:center;\">16.3M</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">2</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Katadata Indonesia</td><td style=\"text-align:center;\">245K</td><td style=\"text-align:center;\">103</td><td style=\"text-align:center;\">1</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">1</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Quartal_id</td><td style=\"text-align:center;\">42</td><td style=\"text-align:center;\">17</td><td style=\"text-align:center;\">1</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">1</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">ppi banten</td><td style=\"text-align:center;\">35</td><td style=\"text-align:center;\">29</td><td style=\"text-align:center;\">1</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">1</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Bisniscom</td><td style=\"text-align:center;\">752K</td><td style=\"text-align:center;\">391</td><td style=\"text-align:center;\">1</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">1</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n", "net_file": "youtube_network_yt_jokowi2.html"}, "prabowo": {"n_videos": 471, "n_channels": 183, "n_pro": 13, "n_kontra": 15, "n_netral": 443, "n_pos": 221, "n_neg": 108, "n_neu": 142, "avg_sent": 0.588, "total_views": 3241668, "has_sent": true, "monthly": {"labels": ["2024-10", "2024-11", "2024-12", "2025-01", "2025-02", "2025-03", "2025-04", "2025-05", "2025-06", "2025-07", "2025-08", "2025-09", "2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03", "2026-04", "2026-05"], "pro": [0, 0, 0, 0, 1, 4, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 2, 1, 0, 0], "kontra": [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 3, 4, 3, 2, 0, 1, 0, 0, 0], "netral": [1, 8, 4, 7, 22, 30, 11, 25, 26, 35, 16, 29, 61, 21, 23, 16, 41, 28, 37, 2]}, "var": {"labels": ["Transisi Energi & NZE", "Keamanan Nasional & Kedaulatan", "Periferalisasi & Hak Masyarakat", "Dinamika Pembahasan DIM", "Intervensi & Pembiayaan", "Tidak Diketahui"], "pro": [4, 6, 1, 2, 0, 0], "kontra": [4, 8, 3, 0, 0, 0], "netral": [320, 99, 9, 8, 6, 1]}, "concepts": {"labels": ["transisi energi", "dekarbonisasi", "energi terbarukan", "dekarbonisasi industri", "net zero emission", "transisi energi bersih", "cesium-137", "net zero emission 2060", "energi bersih", "energi baru terbarukan", "industri hijau", "pembangunan ekonomi berkelanjutan", "kawasan industri cikande", "dekontaminasi", "ketahanan energi", "indonesia emas 2045", "bapeten", "transisi energi terbarukan", "transisi energi hijau", "dekarbonisasi transportasi", "ruu ebet", "net zero emissions", "iaea", "radiasi cesium-137", "cemaran radiasi cesium-137"], "counts": [94, 66, 30, 30, 19, 14, 13, 13, 12, 10, 10, 10, 9, 9, 8, 8, 7, 7, 7, 7, 5, 5, 5, 5, 5]}, "ch_rows": "<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">IESR Indonesia</td><td style=\"text-align:center;\">5K</td><td style=\"text-align:center;\">15K</td><td style=\"text-align:center;\">29</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">2</td><td style=\"text-align:center;color:#ced4da;\">27</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">CNBC Indonesia</td><td style=\"text-align:center;\">2.9M</td><td style=\"text-align:center;\">49K</td><td style=\"text-align:center;\">27</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">27</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">CNN Indonesia</td><td style=\"text-align:center;\">11.9M</td><td style=\"text-align:center;\">56K</td><td style=\"text-align:center;\">26</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">26</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">KONTAN TV</td><td style=\"text-align:center;\">367K</td><td style=\"text-align:center;\">63K</td><td style=\"text-align:center;\">23</td><td style=\"text-align:center;color:#69db7c;\">1</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">21</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Nusantara TV</td><td style=\"text-align:center;\">1.0M</td><td style=\"text-align:center;\">8K</td><td style=\"text-align:center;\">21</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">20</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">METRO TV </td><td style=\"text-align:center;\">11.2M</td><td style=\"text-align:center;\">53K</td><td style=\"text-align:center;\">21</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">2</td><td style=\"text-align:center;color:#ced4da;\">19</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">TVR PARLEMEN</td><td style=\"text-align:center;\">170K</td><td style=\"text-align:center;\">5K</td><td style=\"text-align:center;\">16</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">16</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Tribunnews</td><td style=\"text-align:center;\">15.6M</td><td style=\"text-align:center;\">314K</td><td style=\"text-align:center;\">12</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">12</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">IDX CHANNEL</td><td style=\"text-align:center;\">1.1M</td><td style=\"text-align:center;\">26K</td><td style=\"text-align:center;\">11</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">11</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">GARUDA TV</td><td style=\"text-align:center;\">432K</td><td style=\"text-align:center;\">34K</td><td style=\"text-align:center;\">10</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">10</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">BAPETEN (BAPETEN)</td><td style=\"text-align:center;\">2K</td><td style=\"text-align:center;\">4K</td><td style=\"text-align:center;\">9</td><td style=\"text-align:center;color:#69db7c;\">3</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">6</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Sin Po tv</td><td style=\"text-align:center;\">186K</td><td style=\"text-align:center;\">14K</td><td style=\"text-align:center;\">8</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">8</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">BeritaSatu</td><td style=\"text-align:center;\">3.5M</td><td style=\"text-align:center;\">13K</td><td style=\"text-align:center;\">8</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">8</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Bisniscom</td><td style=\"text-align:center;\">752K</td><td style=\"text-align:center;\">43K</td><td style=\"text-align:center;\">6</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">5</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Kompas.com</td><td style=\"text-align:center;\">6.0M</td><td style=\"text-align:center;\">22K</td><td style=\"text-align:center;\">6</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">6</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">KOMPASTV</td><td style=\"text-align:center;\">19.9M</td><td style=\"text-align:center;\">97K</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">5</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">KOMPASTV JEMBER</td><td style=\"text-align:center;\">1.1M</td><td style=\"text-align:center;\">19K</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">1</td><td style=\"text-align:center;color:#ced4da;\">4</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">PPSDM KEBTKE KESDM</td><td style=\"text-align:center;\">3K</td><td style=\"text-align:center;\">3K</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">3</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">2</td><td style=\"text-align:center;color:#69db7c;font-weight:700;\">PRO</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Badan Kejuruan Kimia PII (BKKPII)</td><td style=\"text-align:center;\">1K</td><td style=\"text-align:center;\">225</td><td style=\"text-align:center;\">5</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">5</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n<tr><td style=\"max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\">Jawa Pos TV Digital</td><td style=\"text-align:center;\">20K</td><td style=\"text-align:center;\">413</td><td style=\"text-align:center;\">4</td><td style=\"text-align:center;color:#69db7c;\">0</td><td style=\"text-align:center;color:#ff6b6b;\">0</td><td style=\"text-align:center;color:#ced4da;\">4</td><td style=\"text-align:center;color:#ced4da;font-weight:700;\">NETRAL</td></tr>\n", "net_file": "youtube_network_yt_prabowo.html"}};
+
+const PRO_C  = "#69db7c";
+const KON_C  = "#ff6b6b";
+const NET_C  = "#ced4da";
+const POS_C  = "#4dabf7";
+const ACC_C  = "#b197fc";
+const TXT1   = "#e8e8e8";
+const TXT2   = "#c9d1d9";
+const BORDER = "#2e3250";
+const TICK   = { color: TXT2, font: { size: 11 } };
+const GRID   = { color: BORDER };
+const LEG    = { labels: { color: TXT1 }, position: 'bottom' };
+
+let chartStance, chartSentiment, chartMonthly, chartVar, chartConcepts;
+
+function makeCharts() {
+  chartStance = new Chart(document.getElementById('chartStance'), {
+    type: 'doughnut',
+    data: { labels: ['PRO','KONTRA','NETRAL'], datasets: [{
+      data: [0,0,0], backgroundColor: [PRO_C, KON_C, NET_C], borderWidth: 0
+    }] },
+    options: {
+      plugins: {
+        legend: LEG,
+        title: { display: true, text: 'Sikap terhadap Nuklir/PLTN', color: TXT1, font: { size: 14 } },
+      },
+      cutout: '62%',
+    },
+  });
+
+  chartSentiment = new Chart(document.getElementById('chartSentiment'), {
+    type: 'doughnut',
+    data: { labels: ['POSITIVE','NEGATIVE','NEUTRAL'], datasets: [{
+      data: [0,0,0], backgroundColor: [POS_C, KON_C, NET_C], borderWidth: 0
+    }] },
+    options: {
+      plugins: {
+        legend: LEG,
+        title: { display: true, text: 'Distribusi Sentimen Video', color: TXT1, font: { size: 14 } },
+      },
+      cutout: '62%',
+    },
+  });
+
+  chartMonthly = new Chart(document.getElementById('chartMonthly'), {
+    type: 'bar',
+    data: { labels: [], datasets: [
+      { label: 'PRO',    data: [], backgroundColor: PRO_C, stack: 'a', borderRadius: 2 },
+      { label: 'KONTRA', data: [], backgroundColor: KON_C, stack: 'a', borderRadius: 2 },
+      { label: 'NETRAL', data: [], backgroundColor: NET_C, stack: 'a', borderRadius: 2 },
+    ] },
+    options: {
+      responsive: true,
+      plugins: { legend: LEG },
+      scales: {
+        x: { stacked: true, ticks: TICK, grid: { color: BORDER } },
+        y: { stacked: true, ticks: TICK, grid: GRID },
+      },
+    },
+  });
+
+  chartVar = new Chart(document.getElementById('chartVar'), {
+    type: 'bar',
+    data: { labels: [], datasets: [
+      { label: 'PRO',    data: [], backgroundColor: PRO_C, stack: 'a', borderRadius: 2 },
+      { label: 'KONTRA', data: [], backgroundColor: KON_C, stack: 'a', borderRadius: 2 },
+      { label: 'NETRAL', data: [], backgroundColor: NET_C, stack: 'a', borderRadius: 2 },
+    ] },
+    options: {
+      indexAxis: 'y', responsive: true,
+      plugins: { legend: LEG },
+      scales: {
+        x: { stacked: true, ticks: TICK, grid: GRID },
+        y: { stacked: true, ticks: { color: TXT2, font: { size: 11 } } },
+      },
+    },
+  });
+
+  chartConcepts = new Chart(document.getElementById('chartConcepts'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{
+      label: 'Video', data: [], backgroundColor: ACC_C, borderRadius: 4
+    }] },
+    options: {
+      indexAxis: 'y', responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: TICK, grid: GRID },
+        y: { ticks: { color: TXT2, font: { size: 11 } } },
+      },
+    },
+  });
+}
+
+function fmtNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0)+'K';
+  return n.toString();
+}
+
+function updatePeriod(pid) {
+  var d = ALL_DATA[pid];
+  if (!d) return;
+
+  document.getElementById('statVideos').textContent   = d.n_videos.toLocaleString();
+  document.getElementById('statChannels').textContent = d.n_channels.toLocaleString();
+  document.getElementById('statPro').textContent      = d.n_pro;
+  document.getElementById('statKontra').textContent   = d.n_kontra;
+  document.getElementById('statNetral').textContent   = d.n_netral;
+  document.getElementById('statViews').textContent    = fmtNum(d.total_views);
+  document.getElementById('statPos').textContent      = d.n_pos;
+  document.getElementById('statSent').textContent     = d.avg_sent.toFixed(2);
+
+  chartStance.data.datasets[0].data    = [d.n_pro, d.n_kontra, d.n_netral];
+  chartSentiment.data.datasets[0].data = [d.n_pos, d.n_neg, d.n_neu];
+  chartStance.update();
+  chartSentiment.update();
+
+  chartMonthly.data.labels           = d.monthly.labels;
+  chartMonthly.data.datasets[0].data = d.monthly.pro;
+  chartMonthly.data.datasets[1].data = d.monthly.kontra;
+  chartMonthly.data.datasets[2].data = d.monthly.netral;
+  chartMonthly.update();
+
+  chartVar.data.labels           = d.var.labels;
+  chartVar.data.datasets[0].data = d.var.pro;
+  chartVar.data.datasets[1].data = d.var.kontra;
+  chartVar.data.datasets[2].data = d.var.netral;
+  chartVar.update();
+
+  chartConcepts.data.labels           = d.concepts.labels;
+  chartConcepts.data.datasets[0].data = d.concepts.counts;
+  chartConcepts.update();
+
+  document.getElementById('chTableBody').innerHTML = d.ch_rows;
+  document.getElementById('networkFrame').src = d.net_file;
+}
+
+makeCharts();
+updatePeriod('all');
+</script>
+</body>
+</html>
