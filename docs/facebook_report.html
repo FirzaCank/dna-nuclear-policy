@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DNA — Facebook Kebijakan Nuklir Indonesia</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f0f1a;color:#e8e8e8;line-height:1.5}
+a{color:inherit}
+.tab-nav{background:#161622;border-bottom:2px solid #2e3250;display:flex;gap:2px;padding:0 48px}
+.tab-link{color:#c9d1d9;padding:11px 22px;text-decoration:none;border-bottom:3px solid transparent;font-size:0.9rem;font-weight:700;letter-spacing:0.5px;margin-bottom:-2px;transition:color .15s;display:inline-block;}
+.tab-link:hover{color:#e8e8e8}
+.tab-active{color:#b197fc;border-bottom-color:#b197fc}
+.header{background:linear-gradient(135deg,#1a237e,#311b92);padding:28px 48px}
+.header h1{font-size:1.85rem;color:#fff;letter-spacing:-0.5px}
+.header p{color:#c9d1d9;margin-top:6px;font-size:0.95rem}
+.container{max-width:1400px;margin:0 auto;padding:28px 48px}
+.stats-row{display:grid;grid-template-columns:repeat(8,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:#1e1e2e;border-radius:12px;padding:18px 12px;text-align:center;border:1px solid #2e3250}
+.stat-card .number{font-size:1.9rem;font-weight:700;color:#b197fc}
+.stat-card .slabel{font-size:0.78rem;color:#c9d1d9;margin-top:5px;line-height:1.3}
+.section{background:#1e1e2e;border-radius:12px;padding:22px;margin-bottom:22px;border:1px solid #2e3250}
+.section h2{font-size:1.1rem;color:#d4a6f7;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #2e3250;font-weight:600}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+canvas{max-height:320px}
+.tbl{width:100%;border-collapse:collapse;font-size:0.88rem}
+.tbl th{color:#c9d1d9;font-weight:600;padding:8px 12px;border-bottom:1px solid #2e3250;text-align:left}
+.tbl td{padding:7px 12px;border-bottom:1px solid #2e325040;color:#e8e8e8}
+.tbl tr:hover td{background:#16213e}
+.net-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:0.82rem}
+.leg{display:flex;align-items:center;gap:6px;color:#c9d1d9}
+.dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.note{color:#c9d1d9;font-size:0.8rem;margin-top:4px;font-style:italic}
+@media(max-width:900px){
+  .chart-row{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .container,.header,.tab-nav{padding:16px 20px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Discourse Network Analysis — Facebook</h1>
+  <p>Kebijakan Energi Nuklir Indonesia · Analisis Konten Facebook</p>
+</div>
+
+<nav class="tab-nav">
+  <a href="report_dna.html" class="tab-link">BERITA NASIONAL</a>
+  <a href="socmed_report.html" class="tab-link">INSTAGRAM</a>
+  <a href="youtube_report.html" class="tab-link">YOUTUBE</a>
+  <a href="facebook_report.html" class="tab-link tab-active">FACEBOOK</a>
+</nav>
+
+<div class="container">
+
+<div class="stats-row">
+  <div class="stat-card"><div class="number" id="statPosts">931</div><div class="slabel">Total Post</div></div>
+  <div class="stat-card"><div class="number" id="statActors">273</div><div class="slabel">Akun Unik</div></div>
+  <div class="stat-card"><div class="number" style="color:#69db7c;">81</div><div class="slabel">PRO Nuklir</div></div>
+  <div class="stat-card"><div class="number" style="color:#ff6b6b;">104</div><div class="slabel">KONTRA Nuklir</div></div>
+  <div class="stat-card"><div class="number" style="color:#ced4da;">746</div><div class="slabel">NETRAL</div></div>
+  <div class="stat-card"><div class="number">56K</div><div class="slabel">Total Likes</div></div>
+  <div class="stat-card"><div class="number" style="color:#4dabf7;">220</div><div class="slabel">Sentimen Positif</div></div>
+  <div class="stat-card"><div class="number">0.57</div><div class="slabel">Rata-rata Skor Sentimen</div></div>
+</div>
+
+<div class="section">
+  <h2>Distribusi Sikap &amp; Sentimen <span class="note">(931/931 post terskor)</span></h2>
+  <div class="chart-row">
+    <div><canvas id="chartStance"></canvas></div>
+    <div><canvas id="chartSentiment"></canvas></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Distribusi Variabel Diskursus</h2>
+  <canvas id="chartVar" style="max-height:340px;"></canvas>
+</div>
+
+<div class="section">
+  <h2>Distribusi per Keyword Pencarian</h2>
+  <canvas id="chartKw" style="max-height:400px;"></canvas>
+</div>
+
+<div class="section">
+  <h2>Top 20 Akun berdasarkan Jumlah Post</h2>
+  <table class="tbl">
+    <thead><tr>
+      <th>Akun</th><th>Total Likes</th><th>Post</th>
+      <th style="color:#69db7c;">PRO</th>
+      <th style="color:#ff6b6b;">KONTRA</th>
+      <th style="color:#ced4da;">NETRAL</th>
+      <th>Dominan</th>
+    </tr></thead>
+    <tbody><tr><td><a href="https://www.facebook.com/profile.php" target="_blank" style="color:#b197fc;text-decoration:none;">profile.php</a></td><td style="text-align:center;">5K</td><td style="text-align:center;">76</td><td style="text-align:center;color:#69db7c;">6</td><td style="text-align:center;color:#ff6b6b;">8</td><td style="text-align:center;color:#ced4da;">62</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/bapeten" target="_blank" style="color:#b197fc;text-decoration:none;">bapeten</a></td><td style="text-align:center;">315</td><td style="text-align:center;">42</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">42</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/KOMPAScom" target="_blank" style="color:#b197fc;text-decoration:none;">KOMPAScom</a></td><td style="text-align:center;">7K</td><td style="text-align:center;">41</td><td style="text-align:center;color:#69db7c;">1</td><td style="text-align:center;color:#ff6b6b;">4</td><td style="text-align:center;color:#ced4da;">36</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/metnet2020" target="_blank" style="color:#b197fc;text-decoration:none;">metnet2020</a></td><td style="text-align:center;">493</td><td style="text-align:center;">17</td><td style="text-align:center;color:#69db7c;">8</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">9</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/brin.indonesia" target="_blank" style="color:#b197fc;text-decoration:none;">brin.indonesia</a></td><td style="text-align:center;">1K</td><td style="text-align:center;">14</td><td style="text-align:center;color:#69db7c;">4</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">10</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/wwwbisniscom" target="_blank" style="color:#b197fc;text-decoration:none;">wwwbisniscom</a></td><td style="text-align:center;">385</td><td style="text-align:center;">14</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">2</td><td style="text-align:center;color:#ced4da;">12</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/katadatacoid" target="_blank" style="color:#b197fc;text-decoration:none;">katadatacoid</a></td><td style="text-align:center;">1K</td><td style="text-align:center;">12</td><td style="text-align:center;color:#69db7c;">2</td><td style="text-align:center;color:#ff6b6b;">1</td><td style="text-align:center;color:#ced4da;">9</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/kumparancom" target="_blank" style="color:#b197fc;text-decoration:none;">kumparancom</a></td><td style="text-align:center;">84</td><td style="text-align:center;">12</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">12</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/bahasa.bangka.2025" target="_blank" style="color:#b197fc;text-decoration:none;">bahasa.bangka.2025</a></td><td style="text-align:center;">1K</td><td style="text-align:center;">12</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">10</td><td style="text-align:center;color:#ced4da;">2</td><td style="text-align:center;color:#ff6b6b;font-weight:700;">KONTRA</td></tr>
+<tr><td><a href="https://www.facebook.com/KonfederasiSerikatPekerjaIndonesia" target="_blank" style="color:#b197fc;text-decoration:none;">KonfederasiSerikatPekerjaIndonesia</a></td><td style="text-align:center;">131</td><td style="text-align:center;">12</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">1</td><td style="text-align:center;color:#ced4da;">11</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/3minutecreator" target="_blank" style="color:#b197fc;text-decoration:none;">3minutecreator</a></td><td style="text-align:center;">2K</td><td style="text-align:center;">11</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">11</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/TempoMedia" target="_blank" style="color:#b197fc;text-decoration:none;">TempoMedia</a></td><td style="text-align:center;">317</td><td style="text-align:center;">11</td><td style="text-align:center;color:#69db7c;">1</td><td style="text-align:center;color:#ff6b6b;">1</td><td style="text-align:center;color:#ced4da;">9</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/antaranewsdotcom" target="_blank" style="color:#b197fc;text-decoration:none;">antaranewsdotcom</a></td><td style="text-align:center;">624</td><td style="text-align:center;">10</td><td style="text-align:center;color:#69db7c;">3</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">7</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/CNBCIndonesia" target="_blank" style="color:#b197fc;text-decoration:none;">CNBCIndonesia</a></td><td style="text-align:center;">101</td><td style="text-align:center;">10</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">10</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/voaindonesia" target="_blank" style="color:#b197fc;text-decoration:none;">voaindonesia</a></td><td style="text-align:center;">2K</td><td style="text-align:center;">10</td><td style="text-align:center;color:#69db7c;">2</td><td style="text-align:center;color:#ff6b6b;">2</td><td style="text-align:center;color:#ced4da;">6</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/jasyanto.sahoer" target="_blank" style="color:#b197fc;text-decoration:none;">jasyanto.sahoer</a></td><td style="text-align:center;">175</td><td style="text-align:center;">9</td><td style="text-align:center;color:#69db7c;">6</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">3</td><td style="text-align:center;color:#69db7c;font-weight:700;">PRO</td></tr>
+<tr><td><a href="https://www.facebook.com/MediaNewsharian" target="_blank" style="color:#b197fc;text-decoration:none;">MediaNewsharian</a></td><td style="text-align:center;">23</td><td style="text-align:center;">9</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">7</td><td style="text-align:center;color:#ced4da;">2</td><td style="text-align:center;color:#ff6b6b;font-weight:700;">KONTRA</td></tr>
+<tr><td><a href="https://www.facebook.com/hashtag" target="_blank" style="color:#b197fc;text-decoration:none;">hashtag</a></td><td style="text-align:center;">480</td><td style="text-align:center;">9</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">9</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/OfficialiNews" target="_blank" style="color:#b197fc;text-decoration:none;">OfficialiNews</a></td><td style="text-align:center;">2K</td><td style="text-align:center;">9</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">0</td><td style="text-align:center;color:#ced4da;">9</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+<tr><td><a href="https://www.facebook.com/MongabayIndonesia" target="_blank" style="color:#b197fc;text-decoration:none;">MongabayIndonesia</a></td><td style="text-align:center;">505</td><td style="text-align:center;">9</td><td style="text-align:center;color:#69db7c;">0</td><td style="text-align:center;color:#ff6b6b;">1</td><td style="text-align:center;color:#ced4da;">8</td><td style="text-align:center;color:#ced4da;font-weight:700;">NETRAL</td></tr>
+</tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Top 25 Konsep (Ekstraksi LLM)</h2>
+  <canvas id="chartConcepts" style="max-height:500px;"></canvas>
+</div>
+
+<div class="section">
+  <h2>Social Network Analysis — Jaringan Mention</h2>
+  <div class="net-legend">
+    <span class="leg"><span class="dot" style="background:#69db7c;"></span>PRO</span>
+    <span class="leg"><span class="dot" style="background:#ff6b6b;"></span>KONTRA</span>
+    <span class="leg"><span class="dot" style="background:#ced4da;"></span>NETRAL</span>
+    <span style="color:#c9d1d9;font-size:0.82rem;">Node = akun Facebook · Edge = mention dalam post</span>
+  </div>
+  <iframe src="facebook_network_fb.html"
+    style="width:100%;height:620px;border:none;border-radius:8px;background:#0f0f1a;"></iframe>
+</div>
+
+</div>
+
+<script>
+const D = {"n_posts": 931, "n_actors": 273, "n_pro": 81, "n_kontra": 104, "n_netral": 746, "n_pos": 220, "n_neg": 148, "n_neu": 563, "avg_sent": 0.568, "total_likes": 55901, "var": {"labels": ["Transisi Energi & NZE", "Keamanan Nasional & Kedaulatan", "Ideologi & Integritas Data", "Periferalisasi & Hak Masyarakat", "Intervensi & Pembiayaan", "Interaksi Pemangku Kepentingan", "Dinamika Pembahasan DIM"], "pro": [13, 16, 38, 6, 4, 4, 0], "kontra": [5, 6, 11, 69, 13, 0, 0], "netral": [244, 159, 121, 78, 101, 39, 4]}, "kw": {"labels": ["nuklir IAEA", "PLTU pensiun", "limbah nuklir", "BRIN nuklir", "PLTN", "dekarbonisasi", "penolakan PLTN", "nuklir DPR", "nuklir energi hijau", "just transition indonesia", "transisi energi", "BRIN ESDM", "Biaya nuklir", "SMR Indonesia", "BAPETEN regulasi reaktor", "NZE Indonesia", "RUU EBET", "LCOE nuklir"], "counts": [87, 85, 81, 79, 76, 73, 72, 70, 59, 57, 55, 43, 33, 19, 18, 18, 4, 2]}, "concepts": {"labels": ["transisi energi", "limbah nuklir", "just transition", "pensiun dini pltu", "penolakan pltn", "pulau gelasa", "dekarbonisasi", "brin", "energi terbarukan", "iaea", "teknologi nuklir", "dekarbonisasi transportasi", "energi bersih", "energi hijau", "program nuklir iran", "diseminasi pengawasan", "pemanfaatan tenaga nuklir", "pembangkit listrik tenaga nuklir", "bapeten", "fasilitas nuklir iran", "pensiun dini", "net zero emission 2060", "pltn", "iran", "kabupaten melawi"], "counts": [48, 29, 29, 24, 21, 17, 17, 14, 14, 13, 12, 12, 10, 10, 9, 9, 9, 8, 8, 8, 8, 8, 7, 7, 7]}};
+const PRO_C="#69db7c",KON_C="#ff6b6b",NET_C="#ced4da",
+      POS_C="#4dabf7",ACC_C="#b197fc",TXT1="#e8e8e8",
+      TXT2="#c9d1d9",BORDER="#2e3250";
+const TICK={color:TXT2,font:{size:11}},GRID={color:BORDER},LEG={labels:{color:TXT1},position:'bottom'};
+
+new Chart(document.getElementById('chartStance'),{
+  type:'doughnut',
+  data:{labels:['PRO','KONTRA','NETRAL'],datasets:[{data:[D.n_pro,D.n_kontra,D.n_netral],backgroundColor:[PRO_C,KON_C,NET_C],borderWidth:0}]},
+  options:{plugins:{legend:LEG,title:{display:true,text:'Sikap terhadap Nuklir/PLTN',color:TXT1,font:{size:14}}},cutout:'62%'},
+});
+new Chart(document.getElementById('chartSentiment'),{
+  type:'doughnut',
+  data:{labels:['POSITIVE','NEGATIVE','NEUTRAL'],datasets:[{data:[D.n_pos,D.n_neg,D.n_neu],backgroundColor:[POS_C,KON_C,NET_C],borderWidth:0}]},
+  options:{plugins:{legend:LEG,title:{display:true,text:'Distribusi Sentimen Post',color:TXT1,font:{size:14}}},cutout:'62%'},
+});
+new Chart(document.getElementById('chartVar'),{
+  type:'bar',
+  data:{labels:D.var.labels,datasets:[
+    {label:'PRO',data:D.var.pro,backgroundColor:PRO_C,stack:'a',borderRadius:2},
+    {label:'KONTRA',data:D.var.kontra,backgroundColor:KON_C,stack:'a',borderRadius:2},
+    {label:'NETRAL',data:D.var.netral,backgroundColor:NET_C,stack:'a',borderRadius:2},
+  ]},
+  options:{indexAxis:'y',responsive:true,plugins:{legend:LEG},scales:{x:{stacked:true,ticks:TICK,grid:GRID},y:{stacked:true,ticks:{color:TXT2,font:{size:11}}}}},
+});
+new Chart(document.getElementById('chartKw'),{
+  type:'bar',
+  data:{labels:D.kw.labels,datasets:[{label:'Post',data:D.kw.counts,backgroundColor:ACC_C,borderRadius:4}]},
+  options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:TICK,grid:GRID},y:{ticks:{color:TXT2,font:{size:11}}}}},
+});
+new Chart(document.getElementById('chartConcepts'),{
+  type:'bar',
+  data:{labels:D.concepts.labels,datasets:[{label:'Post',data:D.concepts.counts,backgroundColor:ACC_C,borderRadius:4}]},
+  options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:TICK,grid:GRID},y:{ticks:{color:TXT2,font:{size:11}}}}},
+});
+</script>
+</body>
+</html>
