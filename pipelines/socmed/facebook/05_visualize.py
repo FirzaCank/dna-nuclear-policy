@@ -276,6 +276,7 @@ canvas{{max-height:320px}}
   <a href="socmed_report.html" class="tab-link">INSTAGRAM</a>
   <a href="youtube_report.html" class="tab-link">YOUTUBE</a>
   <a href="facebook_report.html" class="tab-link tab-active">FACEBOOK</a>
+  <a href="twitter_report.html" class="tab-link">TWITTER/X</a>
 </nav>
 
 <div class="container">
