@@ -18,6 +18,7 @@ cp .env.example .env   # fill in API keys
 ```
 API_KEY=your_gemini_api_key        # https://aistudio.google.com
 YT_API_KEY=your_youtube_data_api   # https://console.cloud.google.com
+SCRAPE_BADGER=your_scrapebadger_key  # https://scrapebadger.com/dashboard/api-keys
 ```
 
 ---
@@ -142,6 +143,39 @@ data/raw/variable_keywords.csv      [18 keywords]
 05_visualize.py        → data/processed/facebook/facebook_report.html
 ```
 
+### Twitter/X (`pipelines/socmed/twitter/`)
+
+Requires: `SCRAPE_BADGER` key in `.env` (ScrapeBadger API)
+
+```
+data/raw/variable_keywords.csv      [18 keywords]
+        │
+        ▼
+01_scrape.py           → data/processed/twitter/twitter_raw.csv          [ScrapeBadger API, resumable]
+        │
+        ▼
+02_clean.py            → data/processed/twitter/twitter_cleaned.csv
+        │
+        ▼
+03_extract_llm.py      → data/processed/twitter/twitter_extracted_raw.jsonl  [resumable]
+        │
+        ▼
+04_sentiment.py        → data/processed/twitter/twitter_sentiment.csv
+        │
+        ▼
+05_visualize.py        → data/processed/twitter/twitter_report.html + twitter_network_tw_{period}.html
+```
+
+Run:
+```bash
+source venv/bin/activate
+python pipelines/socmed/twitter/01_scrape.py
+python pipelines/socmed/twitter/02_clean.py
+python pipelines/socmed/twitter/03_extract_llm.py   # resumable
+python pipelines/socmed/twitter/04_sentiment.py     # resumable
+python pipelines/socmed/twitter/05_visualize.py
+```
+
 ---
 
 ## Publishing to GitHub Pages
@@ -153,6 +187,7 @@ cp data/processed/news/report_dna.html data/processed/news/network_dna_*.html do
 cp data/processed/instagram/socmed_report.html data/processed/instagram/socmed_network_*.html docs/
 cp data/processed/youtube/youtube_report.html data/processed/youtube/youtube_network_*.html docs/
 cp data/processed/facebook/facebook_report.html data/processed/facebook/facebook_network_*.html docs/
+cp data/processed/twitter/twitter_report.html data/processed/twitter/twitter_network_tw_*.html docs/
 git add docs/ && git commit -m "update dashboards" && git push
 ```
 

@@ -2,12 +2,13 @@
 ## Strategic Intelligence Report — Multi-Platform Analysis
 **Prepared by:** Data Analytics Team
 **Date:** May 4, 2026
-**Status:** Phase 1 Complete (News Media) | Phase 2 Complete (Instagram, YouTube, Facebook)
+**Status:** Phase 1 Complete (News Media) | Phase 2 Complete (Instagram, YouTube, Facebook, Twitter/X)
 **Live Dashboards:**
 - [Berita Nasional](https://firzacank.github.io/dna-nuclear-policy/report_dna.html)
 - [Instagram](https://firzacank.github.io/dna-nuclear-policy/socmed_report.html) — 1,769 posts
 - [YouTube](https://firzacank.github.io/dna-nuclear-policy/youtube_report.html) — 559 videos
 - [Facebook](https://firzacank.github.io/dna-nuclear-policy/facebook_report.html) — 931 posts
+- [Twitter/X](https://firzacank.github.io/dna-nuclear-policy/twitter_report.html) — 289 tweets
 
 ---
 
@@ -52,8 +53,9 @@ This is a two-phase multi-platform analysis:
 | Phase 2a | Instagram | 1,769 posts | ✅ Complete |
 | Phase 2b | YouTube | 559 videos | ✅ Complete |
 | Phase 2c | Facebook | 931 posts | ✅ Complete |
+| Phase 2d | Twitter/X | 289 tweets | ✅ Complete |
 
-Phase 1 covers **719 online news articles** spanning **December 2010 to April 2026**. Phase 2 covers social media posts collected via keyword search across 18 policy variables, analyzed with LLM-based stance extraction (PRO/KONTRA/NETRAL) and sentiment scoring.
+Phase 1 covers **719 online news articles** spanning **December 2010 to April 2026**. Phase 2 covers social media posts collected via keyword search across 18 policy variables, analyzed with LLM-based stance extraction (PRO/KONTRA/NETRAL) and sentiment scoring. Twitter/X data includes period filter (Jokowi I/II/Prabowo) enabled by native timestamps.
 
 ---
 
@@ -594,7 +596,7 @@ For **any stakeholder** engaging in this policy space:
 
 | Priority | Action | Timeline |
 |----------|--------|----------|
-| High | Complete social media data collection (Twitter/X, YouTube) | Q2 2026 |
+| ~~High~~ | ~~Complete social media data collection (Twitter/X, YouTube)~~ | ✅ Done |
 | High | Re-run pipeline after next major DIM session | Within 30 days of session |
 | Medium | Qualitative review of excluded actors for stakeholder blind spots | Q2 2026 |
 | Medium | Share `excluded_actors.csv` and `actor_detail.csv` with subject matter experts for validation | Immediate |
