@@ -325,11 +325,6 @@ canvas{{max-height:320px}}
 </div>
 
 <div class="section">
-  <h2>Top 25 Konsep (Ekstraksi LLM)</h2>
-  <canvas id="chartConcepts" style="max-height:500px;"></canvas>
-</div>
-
-<div class="section">
   <h2>Social Network Analysis — Jaringan Mention</h2>
   <div class="net-legend">
     <span class="leg"><span class="dot" style="background:{C['pro']};"></span>PRO</span>
@@ -372,11 +367,6 @@ new Chart(document.getElementById('chartVar'),{{
 new Chart(document.getElementById('chartKw'),{{
   type:'bar',
   data:{{labels:D.kw.labels,datasets:[{{label:'Post',data:D.kw.counts,backgroundColor:ACC_C,borderRadius:4}}]}},
-  options:{{indexAxis:'y',responsive:true,plugins:{{legend:{{display:false}}}},scales:{{x:{{ticks:TICK,grid:GRID}},y:{{ticks:{{color:TXT2,font:{{size:11}}}}}}}}}},
-}});
-new Chart(document.getElementById('chartConcepts'),{{
-  type:'bar',
-  data:{{labels:D.concepts.labels,datasets:[{{label:'Post',data:D.concepts.counts,backgroundColor:ACC_C,borderRadius:4}}]}},
   options:{{indexAxis:'y',responsive:true,plugins:{{legend:{{display:false}}}},scales:{{x:{{ticks:TICK,grid:GRID}},y:{{ticks:{{color:TXT2,font:{{size:11}}}}}}}}}},
 }});
 </script>

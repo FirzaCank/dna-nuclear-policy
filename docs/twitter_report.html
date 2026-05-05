@@ -95,11 +95,6 @@ tr:hover td{background:#16213e}
 </div>
 
 <div class="section">
-  <h2>Top 25 Konsep (LLM)</h2>
-  <canvas id="chartConcepts" height="180"></canvas>
-</div>
-
-<div class="section">
   <h2>Top 20 Akun Twitter</h2>
   <table>
     <thead><tr>
@@ -148,7 +143,7 @@ const C = {
   accent:"#b197fc", info:"#4dabf7", concept:"#d4a6f7", txt2:"#c9d1d9"
 };
 
-let chartStance, chartSent, chartVar, chartKw, chartConcepts;
+let chartStance, chartSent, chartVar, chartKw;
 
 function fmtNum(n){
   n=parseInt(n)||0;
@@ -163,7 +158,6 @@ function initCharts(d){
   chartSent=co('chartSent',{type:'doughnut',data:{labels:['Positif','Negatif','Netral'],datasets:[{data:[d.n_pos,d.n_neg,d.n_neu],backgroundColor:['#69db7c','#ff6b6b','#ced4da'],borderWidth:0}]},options:{plugins:{legend:{labels:{color:'#e8e8e8'}}},cutout:'65%'}});
   chartVar=co('chartVar',{type:'bar',data:{labels:d.var.labels,datasets:[{label:'PRO',data:d.var.pro,backgroundColor:C.pro},{label:'KONTRA',data:d.var.kontra,backgroundColor:C.kontra},{label:'NETRAL',data:d.var.netral,backgroundColor:C.netral}]},options:{indexAxis:'y',plugins:{legend:{labels:{color:'#e8e8e8'}}},scales:{x:{stacked:true,ticks:{color:'#c9d1d9'},grid:{color:'#2e325033'}},y:{stacked:true,ticks:{color:'#c9d1d9'},grid:{color:'#2e325033'}}}}});
   chartKw=co('chartKw',{type:'bar',data:{labels:d.kw.labels,datasets:[{data:d.kw.counts,backgroundColor:C.accent}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#c9d1d9'},grid:{color:'#2e325033'}},y:{ticks:{color:'#c9d1d9'},grid:{color:'#2e325033'}}}}});
-  chartConcepts=co('chartConcepts',{type:'bar',data:{labels:d.concepts.labels,datasets:[{data:d.concepts.counts,backgroundColor:C.concept}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#c9d1d9'},grid:{color:'#2e325033'}},y:{ticks:{color:'#c9d1d9',font:{size:11}},grid:{color:'#2e325033'}}}}});
 }
 
 function updateCharts(pid){
@@ -183,7 +177,6 @@ function updateCharts(pid){
   chartVar.data.datasets[1].data=d.var.kontra;
   chartVar.data.datasets[2].data=d.var.netral; chartVar.update();
   chartKw.data.labels=d.kw.labels; chartKw.data.datasets[0].data=d.kw.counts; chartKw.update();
-  chartConcepts.data.labels=d.concepts.labels; chartConcepts.data.datasets[0].data=d.concepts.counts; chartConcepts.update();
   document.getElementById('actorTbody').innerHTML=ACTOR_HTML[pid];
   document.getElementById('netFrame').src=NET_PATHS[pid];
 }
