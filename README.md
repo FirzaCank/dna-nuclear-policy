@@ -201,3 +201,4 @@ All LLM scripts are **resumable** — progress checkpointed to JSONL/CSV every 5
 | Facebook scraping | Playwright (headless Chromium + cookie auth) |
 | Data processing | pandas |
 | Deployment | GitHub Pages (`docs/` folder) |
+ 
